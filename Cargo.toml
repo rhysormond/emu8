@@ -1,0 +1,8 @@
+[package]
+name = "emu8"
+version = "0.1.0"
+authors = ["rhys <rhysormond@gmail.com>"]
+
+[dependencies]
+clippy = "*"
+sdl2 = "0"
