@@ -1,5 +1,5 @@
 # Emu8
-A Chip-8 emulator written in Rust.
+A Chip-8 interpreter written in Rust.
 
 Specifications are taken from [Columbia University's Chip8 Design Specification][design spec].
 

@@ -1,5 +1,3 @@
-extern crate sdl2;
-
 use chip8::FrameBuffer;
 
 /// # Chip-8 Display
