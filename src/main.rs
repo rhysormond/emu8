@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 mod chip8;
 mod display;
+mod keymap;
 mod sprites;
 
 fn main() {
@@ -35,14 +36,16 @@ fn main() {
                     ..
                 } => break 'event,
                 // Handle other actual input
-                Event::KeyDown {
-                    keycode: Some(_key),
-                    ..
+                Event::KeyDown { keycode: Some(key), .. } => {
+                    if let Some(key) = keymap::keymap(key) {
+                        chip8.key_press(key)
+                    }
                 }
-                | Event::KeyUp {
-                    keycode: Some(_key),
-                    ..
-                } => chip8.input(_key),
+                Event::KeyUp { keycode: Some(key_code), .. } =>  {
+                    if let Some(key) = keymap::keymap(key_code) {
+                        chip8.key_release(key)
+                    }
+                }
                 _ => continue,
             };
         }

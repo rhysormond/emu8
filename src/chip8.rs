@@ -1,4 +1,3 @@
-use sdl2::keyboard::Keycode;
 use sprites::SPRITE_SHEET;
 
 /// # Chip-8
@@ -68,9 +67,12 @@ impl Chip8 {
         }
     }
 
-    // TODO remove sdl2 dependency within chip8
     /// Handles input from event loop.
-    pub fn input(&mut self, _key: Keycode) {
+    pub fn key_press(&mut self, key: u8) {
+        // TODO Actually handle input
+    }
+
+    pub fn key_release(&mut self, key: u8) {
         // TODO Actually handle input
     }
 
