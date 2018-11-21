@@ -1,4 +1,5 @@
 use sdl2::keyboard::Keycode;
+use sprites::SPRITE_SHEET;
 
 /// # Chip-8
 /// Chip-8 is a virtual machine and corresponding interpreted language.
@@ -47,15 +48,22 @@ pub type Stack = [u8; 16];
 
 impl Chip8 {
     pub fn new() -> Self {
+        // 0x000 - 0x080 is reserved for a sprite sheet
+        let mut memory: Memory = [0; 4096];
+        memory[0..80].copy_from_slice(&SPRITE_SHEET);
+
+        // 0x200 is where ROMs are loaded into memory
+        let program_counter: u16 = 0x200;
+
         Chip8 {
             v_registers: [0; 16],
             address_register: 0,
-            program_counter: 0,
+            program_counter,
             stack_pointer: 0,
             delay_timer: 0,
             sound_timer: 0,
             stack: [0; 16],
-            memory: [0; 4096],
+            memory,
             frame_buffer: [[0; 32]; 64],
         }
     }
