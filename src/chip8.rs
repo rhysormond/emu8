@@ -76,10 +76,35 @@ impl Chip8 {
         // TODO Actually handle input
     }
 
-    /// Execute one CPU cycle.
+    /// Executes a single CPU cycle
     pub fn cycle(&mut self) {
-        // TODO Decrement Delay Timer
-        // TODO Decrement Sound Timer
-        // TODO Increment Program Counter if it needs it
+        // Get and execute the next opcode
+        let op: u16 = self.get_op();
+        self.execute_op(op);
+
+        // The delay timer decrements every CPU cycle
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+
+        // Each time the sound timer is decremented it triggers a beep
+        if self.sound_timer > 0 {
+            // TODO Make some sound
+            self.sound_timer -= 1;
+        }
+    }
+
+    /// Gets the opcode pointed to by the program_counter
+    /// Interpreter memory is stored as bytes, but opcodes are 16 bits.
+    /// Because of this we need to combine subsequent bytes.
+    fn get_op(&self) -> u16 {
+        let left = u16::from(self.memory[self.program_counter as usize]);
+        let right = u16::from(self.memory[self.program_counter as usize + 1]);
+        left << 8 | right
+    }
+
+    /// Execute a single opcode
+    fn execute_op(&self, op: u16) {
+        // TODO All the things
     }
 }

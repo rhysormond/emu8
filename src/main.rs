@@ -23,6 +23,7 @@ fn main() {
     let mut last_frame = Instant::now();
     'event: loop {
         // TODO Log stuff to see what's actually going on
+        // TODO Implement and handle the draw flag
         // Get the state of the Chip-8 FrameBuffer and draw it
         display.render_frame(&chip8.frame_buffer);
 
@@ -36,12 +37,17 @@ fn main() {
                     ..
                 } => break 'event,
                 // Handle other actual input
-                Event::KeyDown { keycode: Some(key), .. } => {
+                Event::KeyDown {
+                    keycode: Some(key), ..
+                } => {
                     if let Some(key) = keymap::keymap(key) {
                         chip8.key_press(key)
                     }
                 }
-                Event::KeyUp { keycode: Some(key_code), .. } =>  {
+                Event::KeyUp {
+                    keycode: Some(key_code),
+                    ..
+                } => {
                     if let Some(key) = keymap::keymap(key_code) {
                         chip8.key_release(key)
                     }
