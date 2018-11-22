@@ -28,7 +28,6 @@ use sprites::SPRITE_SHEET;
 /// - 32x64 byte frame buffer
 ///     - stores the contents of the next frame to be drawn
 /// - 4096 bytes of addressable memory
-/// - 4096 bytes of ROM (optional)
 pub struct Chip8 {
     v_registers: [u8; 16],
     address_register: u16,

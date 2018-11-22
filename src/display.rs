@@ -51,8 +51,8 @@ impl Display {
         let px_rect = sdl2::rect::Rect::new(
             (x * self.resolution) as i32,
             (y * self.resolution) as i32,
-            10,
-            10,
+            self.resolution as u32,
+            self.resolution as u32,
         );
         self.canvas.fill_rect(px_rect).unwrap()
     }
