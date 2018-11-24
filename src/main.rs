@@ -3,6 +3,10 @@ extern crate sdl2;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+
+use std::env;
+use std::fs::File;
+use std::io::BufReader;
 use std::time::{Duration, Instant};
 
 mod chip8;
@@ -18,7 +22,16 @@ fn main() {
     let mut chip8 = chip8::Chip8::new();
     let mut display = display::Display::new(&sdl, 64, 32, 10);
     let mut events = sdl.event_pump().unwrap();
-    // TODO Load ROMs
+
+    let args = std::env::args();
+    if args.len() > 1 {
+        let file_path = args.last().expect("unable to get file path from args");
+        let file = File::open(file_path).expect("unable to open file");
+        let mut reader = BufReader::new(file);
+        chip8.load_rom(&mut reader);
+    } else {
+        panic!("expected ROM file path but got no arguments");
+    }
 
     // Timing (the Chip-8 has a frame_rate of 60Hz -> 16.7 milliseconds/frame)
     let frame_rate = Duration::new(0, 16_666_667);

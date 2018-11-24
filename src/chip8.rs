@@ -80,7 +80,12 @@ impl Chip8 {
         }
     }
 
-    /// Set the pressed status of key;
+    /// Load a rom from a source file
+    pub fn load_rom(&mut self, file: &mut std::io::Read) {
+        file.read(&mut self.memory[0x200..]);
+    }
+
+    /// Set the pressed status of key
     pub fn key_press(&mut self, key: u8) {
         self.pressed_keys[key as usize] = 0x1;
         if let Some(register) = self.register_needing_key {
