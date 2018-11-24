@@ -82,7 +82,7 @@ impl Chip8 {
 
     /// Load a rom from a source file
     pub fn load_rom(&mut self, file: &mut std::io::Read) {
-        file.read(&mut self.memory[0x200..]);
+        file.read(&mut self.memory[0x200..]).unwrap();
     }
 
     /// Set the pressed status of key

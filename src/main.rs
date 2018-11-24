@@ -1,10 +1,9 @@
 extern crate rand;
 extern crate sdl2;
 
+use display::Display;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-
-use std::env;
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Duration, Instant};
@@ -20,7 +19,7 @@ fn main() {
     // Initializing State
     let sdl = sdl2::init().unwrap();
     let mut chip8 = chip8::Chip8::new();
-    let mut display = display::Display::new(&sdl, 64, 32, 10);
+    let mut display = display::Window::new(&sdl, 64, 32, 10);
     let mut events = sdl.event_pump().unwrap();
 
     let args = std::env::args();
@@ -40,7 +39,7 @@ fn main() {
     'event: loop {
         if chip8.should_draw == true {
             // Get the state of the Chip-8 FrameBuffer and draw it
-            display.render_frame(&chip8.frame_buffer);
+            display.render(&chip8.frame_buffer);
         }
 
         // Check for any input and handle it
