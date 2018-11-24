@@ -152,11 +152,11 @@ impl Chip8 {
         let x_size = self.frame_buffer.len();
         let y_size = self.frame_buffer[0].len();
 
-        for (row_data, y_idx) in sprite_data.iter().enumerate() {
+        for (y_idx, row_data) in sprite_data.iter().enumerate() {
             for x_idx in (0..8).rev() {
                 let pixel_value: u8 = (row_data >> x_idx) as u8 & 0x1;
-                let pixel_x: usize = (sprite_x + x_idx) as usize % x_size;
-                let pixel_y: usize = (sprite_y + y_idx) as usize % y_size;
+                let pixel_x: usize = (sprite_x as usize + x_idx) % x_size;
+                let pixel_y: usize = (sprite_y as usize + y_idx) % y_size;
 
                 let old_value = self.frame_buffer[pixel_x][pixel_y];
                 self.frame_buffer[pixel_x][pixel_y] ^= pixel_value;
@@ -388,14 +388,14 @@ impl Chip8 {
             (0xF, x, 0x5, 0x5) => {
                 // Fill memory starting at address i with V0..Vx
                 println!("LD [I], Vx {:X}", x);
-                self.memory[self.i as usize..x as usize]
+                self.memory[self.i as usize..(self.i + x as u16) as usize]
                     .copy_from_slice(&self.v[0x0 as usize..x as usize]);
             }
             (0xF, x, 0x6, 0x5) => {
                 // Fill V0..Vx with memory starting at address i
                 println!("LD Vx {:X}, [I]", x);
                 self.v[0x0 as usize..x as usize]
-                    .copy_from_slice(&self.memory[self.i as usize..x as usize]);
+                    .copy_from_slice(&self.memory[self.i as usize..(self.i + x as u16) as usize]);
             }
             other => panic!("Opcode {:?} is not implemented", other),
         }
