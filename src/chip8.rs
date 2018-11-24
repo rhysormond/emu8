@@ -153,8 +153,9 @@ impl Chip8 {
         let y_size = self.frame_buffer[0].len();
 
         for (y_idx, row_data) in sprite_data.iter().enumerate() {
-            for x_idx in (0..8).rev() {
-                let pixel_value: u8 = (row_data >> x_idx) as u8 & 0x1;
+            // TODO figure out why this isn't equivalent to 0..8.rev() .. row_data >> x_idx
+            for x_idx in 0..8 {
+                let pixel_value: u8 = (row_data >> (7 - x_idx)) as u8 & 0x1;
                 let pixel_x: usize = (sprite_x as usize + x_idx) % x_size;
                 let pixel_y: usize = (sprite_y as usize + y_idx) % y_size;
 
@@ -168,7 +169,7 @@ impl Chip8 {
         }
     }
 
-    // TODO refactor this to eliminate some repitition
+    // TODO refactor this to eliminate some repetition
     // TODO double check which opcodes should(n't) increment the pc
     /// Execute a single opcode
     fn execute_op(&mut self, op: u16) {
@@ -177,12 +178,12 @@ impl Chip8 {
         match op.as_nibbles() {
             (0x0, 0x0, 0xE, 0x0) => {
                 // Clear the display
-                println!("CLS");
+                println!("CLS  |");
                 self.frame_buffer = [[0; 32]; 64];
             }
             (0x0, 0x0, 0xE, 0xE) => {
                 // Return from subroutine
-                println!("RET");
+                println!("RET  |");
                 self.pc = self.stack[self.sp as usize];
                 self.sp -= 0x1;
                 // Don't increment the pc this cycle
@@ -191,7 +192,7 @@ impl Chip8 {
             (0x1, ..) => {
                 // Jump to addr
                 let addr = op & 0x0FFF;
-                println!("JP addr {:X}", addr);
+                println!("JP   | {:X}", addr);
                 self.pc = addr;
                 // Don't increment the pc this cycle
                 pc_increment = 0;
@@ -199,7 +200,7 @@ impl Chip8 {
             (0x2, ..) => {
                 // Call addr
                 let addr = op & 0x0FFF;
-                println!("CALL addr {:X}", addr);
+                println!("CALL | {:X}", addr);
                 self.sp += 0x1;
                 self.stack[self.sp as usize] = self.pc;
                 self.pc = addr;
@@ -209,7 +210,7 @@ impl Chip8 {
             (0x3, x, ..) => {
                 // Skip next instruction if Vx == kk
                 let kk = (op & 0x00FF) as u8;
-                println!("SE Vx {:X}, {:X}", x, kk);
+                println!("SE   | V{:X} == {:X}", x, kk);
                 if self.v[x as usize] == kk {
                     self.pc += 0x2;
                 };
@@ -217,14 +218,14 @@ impl Chip8 {
             (0x4, x, ..) => {
                 // Skip next instruction if Vx != kk
                 let kk = (op & 0x00FF) as u8;
-                println!("SE Vx {:X}, {:X}", x, kk);
+                println!("SNE  | V{:X} != {:X}", x, kk);
                 if self.v[x as usize] != kk {
                     self.pc += 0x2;
                 };
             }
             (0x5, x, y, 0) => {
                 // Skip next instruction if Vx == Vy
-                println!("SE Vx {:X}, Vy {:X}", x, y);
+                println!("SE   | V{:X} == V{:X}", x, y);
                 if self.v[x as usize] == self.v[y as usize] {
                     self.pc += 0x2;
                 };
@@ -232,39 +233,39 @@ impl Chip8 {
             (0x6, x, ..) => {
                 // Vx = kk
                 let kk = (op & 0x00FF) as u8;
-                println!("LD Vx {:X}, {:X}", x, kk);
+                println!("LD   | V{:X} = {:X}", x, kk);
                 self.v[x as usize] = kk;
             }
             (0x7, x, ..) => {
                 // Vx += kk
                 let kk = (op & 0x00FF) as u8;
-                println!("Add Vx {:X}, {:X}", x, kk);
+                println!("Add  | V{:X} += {:X}", x, kk);
                 self.v[x as usize] += kk;
             }
             (0x8, x, y, 0x0) => {
                 // Vx = Vy
-                println!("LD Vx {:X}, Vy {:X}", x, y);
+                println!("LD   | V{:X} = V{:X}", x, y);
                 self.v[x as usize] = self.v[y as usize];
             }
             (0x8, x, y, 0x1) => {
                 // Vx = Vx OR Vy
-                println!("OR Vx {:X}, Vy {:X}", x, y);
-                self.v[x as usize] = self.v[x as usize] | self.v[y as usize];
+                println!("OR   | V{:X} |= V{:X}", x, y);
+                self.v[x as usize] |= self.v[y as usize];
             }
             (0x8, x, y, 0x2) => {
                 // Vx = Vx AND Vy
-                println!("AND Vx {:X}, Vy {:X}", x, y);
-                self.v[x as usize] = self.v[x as usize] & self.v[y as usize];
+                println!("AND  | V{:X} &= V{:X}", x, y);
+                self.v[x as usize] &= self.v[y as usize];
             }
             (0x8, x, y, 0x3) => {
                 // Vx = Vx XOR Vy
-                println!("XOR Vx {:X}, Vy {:X}", x, y);
-                self.v[x as usize] = self.v[x as usize] ^ self.v[y as usize];
+                println!("XOR  | V{:X} ^= V{:X}", x, y);
+                self.v[x as usize] ^= self.v[y as usize];
             }
             (0x8, x, y, 0x4) => {
                 // Vx = Vx + Vy
                 // VF = overflow
-                println!("ADD Vx {:X}, Vy {:X}", x, y);
+                println!("ADD  | V{:X}.overflow_add(V{:X})", x, y);
                 let (result, overflow) = self.v[x as usize].overflowing_add(self.v[y as usize]);
                 self.v[0xF] = if overflow { 0x1 } else { 0x0 };
                 self.v[x as usize] = result;
@@ -272,7 +273,7 @@ impl Chip8 {
             (0x8, x, y, 0x5) => {
                 // Vx = Vx - Vy
                 // VF = not borrow
-                println!("SUB Vx {:X}, Vy {:X}", x, y);
+                println!("SUB  | V{:X}.overflow_sub(V{:X})", x, y);
                 let (result, overflow) = self.v[x as usize].overflowing_sub(self.v[y as usize]);
                 self.v[0xF] = if !overflow { 0x1 } else { 0x0 };
                 self.v[x as usize] = result;
@@ -280,14 +281,14 @@ impl Chip8 {
             (0x8, x, _, 0x6) => {
                 // VF = Vx least significant bit == 1
                 // Vx /= 2
-                println!("SHR Vx {:X}", x);
+                println!("SHR  | V{:X}", x);
                 self.v[0xF] = self.v[x as usize] & 0x1;
                 self.v[x as usize] /= 0x2;
             }
             (0x8, x, y, 0x7) => {
                 // Vx = Vy - Vx
                 // Vx = not borrow
-                println!("SUBN Vx {:X}, Vy {:X}", x, y);
+                println!("SUBN | !V{:X}.overflowing_sub(V{:X})", x, y);
                 let (result, overflow) = self.v[y as usize].overflowing_sub(self.v[x as usize]);
                 self.v[0xF] = if overflow { 0x1 } else { 0x0 };
                 self.v[x as usize] = result;
@@ -295,89 +296,89 @@ impl Chip8 {
             (0x8, x, _, 0xE) => {
                 // VF = Vx least significant bit == 1
                 // Vx *= Vx
-                println!("SHL Vx {:X}", x);
+                println!("SHL  | V{:X}", x);
                 self.v[0xF] = self.v[x as usize] & 0x1;
                 self.v[x as usize] *= 0x2;
             }
             (0x9, x, y, 0x0) => {
                 // Skip next instruction if Vx != Vy
-                println!("SNE Vx {:X}", x);
-                if self.v[x as usize] == self.v[y as usize] {
+                println!("SNE  | V{:X} != V{:X}", x, y);
+                if self.v[x as usize] != self.v[y as usize] {
                     self.pc += 0x2
                 };
             }
             (0xA, ..) => {
                 // Set address register to addr
                 let addr = op & 0x0FFF;
-                println!("LD I addr {:X}", addr);
+                println!("LD   | I = {:X}", addr);
                 self.i = addr;
             }
             (0xB, ..) => {
                 // Set program counter to V0 + addr
                 let addr = op & 0x0FFF;
-                println!("JP V0 addr {:X}", addr);
+                println!("JP   | PC = V0 + {:X}", addr);
                 self.pc = self.v[0x0] as u16 + addr;
                 // Don't increment the pc this cycle
                 pc_increment = 0;
             }
             (0xC, x, ..) => {
                 let kk = (op & 0x00FF) as u8;
-                println!("RND Vx {:X}, {:X}", x, kk);
+                println!("RND  | V{:X} = rand + {:X}", x, kk);
                 let rand_byte: u8 = rand::random();
                 self.v[x as usize] = rand_byte + kk;
             }
             (0xD, x, y, n) => {
-                println!("DRW Vx {}, Vy {}, nibble {}", x, y, n);
+                println!("DRW  | x=V{:X} y=V{:X} size={:X}", x, y, n);
                 self.draw_sprite(x, y, n);
             }
             (0xE, x, 0x9, 0xE) => {
                 // Skip the next instruction if key Vx is pressed
-                println!("SKP Vx {}", x);
+                println!("SKP  | skip if V{:X} is pressed", x);
                 if self.pressed_keys[self.v[x as usize] as usize] == 0x1 {
                     self.pc += 2;
                 };
             }
             (0xE, x, 0xA, 0x1) => {
                 // Skip the next instruction if key Vx is not pressed
-                println!("SKNP Vx {}", x);
+                println!("SKNP | skip if V{:X} is not pressed", x);
                 if self.pressed_keys[self.v[x as usize] as usize] == 0x0 {
                     self.pc += 2;
                 };
             }
             (0xF, x, 0x0, 0x7) => {
                 // Vx = delay_timer
-                println!("LD Vx {:X}, DT", x);
+                println!("LD   | V{:X} = DT", x);
                 self.v[x as usize] = self.delay_timer;
             }
             (0xF, x, 0x0, 0xA) => {
                 // Await keypress and store it in Vx
-                println!("LD Vx {}, K", x);
+                println!("LD   | V{:X} = keypress", x);
                 self.register_needing_key = Some(x)
             }
             (0xF, x, 0x1, 0x5) => {
                 // delay_timer = Vx
-                println!("LD DT, Vx {:X}", x);
+                println!("LD   | DT = V{:X}", x);
                 self.delay_timer = self.v[x as usize];
             }
             (0xF, x, 0x1, 0x8) => {
                 // sound_timer = Vx
-                println!("LD ST, Vx {:X}", x);
+                println!("LD   | ST = V{:X}", x);
                 self.sound_timer = self.v[x as usize];
             }
             (0xF, x, 0x1, 0xE) => {
                 // I = I + Vx
-                println!("ADD I, Vx {:X}", x);
+                println!("ADD  | I += V{:X}", x);
                 self.i += self.v[x as usize] as u16;
             }
             (0xF, x, 0x2, 0x9) => {
                 // I = memory addr for the hexadecimal sprite Vx
                 // See sprites::SPRITE_SHEET for more details
-                println!("LD F, Vx {:X}", x);
+                println!("LD   | I = V{:X} * 5", x);
                 self.i = self.v[x as usize] as u16 * 5;
             }
             (0xF, x, 0x3, 0x3) => {
                 // Store BCD repr of Vx in memory starting at address i
-                println!("LD B, Vx {:X}", x);
+                println!("LD   | mem[I..I+3] = bcd(V{:X})", x);
                 let bcd = [
                     (self.v[x as usize] / 100 % 10),
                     (self.v[x as usize] / 10 % 10),
@@ -387,13 +388,13 @@ impl Chip8 {
             }
             (0xF, x, 0x5, 0x5) => {
                 // Fill memory starting at address i with V0..Vx
-                println!("LD [I], Vx {:X}", x);
+                println!("LD   | mem[I..I+{:X}] = V0..V{:X}", x, x);
                 self.memory[self.i as usize..(self.i + x as u16) as usize]
                     .copy_from_slice(&self.v[0x0 as usize..x as usize]);
             }
             (0xF, x, 0x6, 0x5) => {
                 // Fill V0..Vx with memory starting at address i
-                println!("LD Vx {:X}, [I]", x);
+                println!("LD   | V0..V{:X} = mem[I..I+{:X}]", x, x);
                 self.v[0x0 as usize..x as usize]
                     .copy_from_slice(&self.memory[self.i as usize..(self.i + x as u16) as usize]);
             }
