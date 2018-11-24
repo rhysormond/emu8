@@ -2,6 +2,7 @@ use opcode::Opcode;
 use sprites::SPRITE_SHEET;
 
 /// # Chip-8
+///
 /// Chip-8 is a virtual machine and corresponding interpreted language.
 ///
 /// ## CPU
@@ -191,7 +192,7 @@ impl Chip8 {
             }
             (0x1, ..) => {
                 // Jump to addr
-                let addr = op & 0x0FFF;
+                let addr = op.addr();
                 println!("JP   | {:X}", addr);
                 self.pc = addr;
                 // Don't increment the pc this cycle
@@ -199,7 +200,7 @@ impl Chip8 {
             }
             (0x2, ..) => {
                 // Call addr
-                let addr = op & 0x0FFF;
+                let addr = op.addr();
                 println!("CALL | {:X}", addr);
                 self.sp += 0x1;
                 self.stack[self.sp as usize] = self.pc;
@@ -309,13 +310,13 @@ impl Chip8 {
             }
             (0xA, ..) => {
                 // Set address register to addr
-                let addr = op & 0x0FFF;
+                let addr = op.addr();
                 println!("LD   | I = {:X}", addr);
                 self.i = addr;
             }
             (0xB, ..) => {
                 // Set program counter to V0 + addr
-                let addr = op & 0x0FFF;
+                let addr = op.addr();
                 println!("JP   | PC = V0 + {:X}", addr);
                 self.pc = self.v[0x0] as u16 + addr;
                 // Don't increment the pc this cycle
