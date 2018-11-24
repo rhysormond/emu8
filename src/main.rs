@@ -37,7 +37,7 @@ fn main() {
     let mut last_frame = Instant::now();
     // TODO Log stuff to see what's actually going on
     'event: loop {
-        if chip8.should_draw == true {
+        if chip8.should_draw {
             // Get the state of the Chip-8 FrameBuffer and draw it
             display.render(&chip8.frame_buffer);
         }

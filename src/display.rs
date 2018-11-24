@@ -52,9 +52,7 @@ impl Window {
             self.scale as u32,
             self.scale as u32,
         );
-        self.canvas
-            .fill_rect(px_rect)
-            .unwrap();
+        self.canvas.fill_rect(px_rect).unwrap();
     }
 }
 
