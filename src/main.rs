@@ -1,3 +1,4 @@
+extern crate rand;
 extern crate sdl2;
 
 use sdl2::event::Event;
@@ -7,6 +8,7 @@ use std::time::{Duration, Instant};
 mod chip8;
 mod display;
 mod keymap;
+mod opcode;
 mod sprites;
 
 fn main() {
@@ -21,11 +23,12 @@ fn main() {
     // Timing (the Chip-8 has a frame_rate of 60Hz -> 16.7 milliseconds/frame)
     let frame_rate = Duration::new(0, 16_666_667);
     let mut last_frame = Instant::now();
+    // TODO Log stuff to see what's actually going on
     'event: loop {
-        // TODO Log stuff to see what's actually going on
-        // TODO Implement and handle the draw flag
-        // Get the state of the Chip-8 FrameBuffer and draw it
-        display.render_frame(&chip8.frame_buffer);
+        if chip8.should_draw == true {
+            // Get the state of the Chip-8 FrameBuffer and draw it
+            display.render_frame(&chip8.frame_buffer);
+        }
 
         // Check for any input and handle it
         for event in events.poll_iter() {

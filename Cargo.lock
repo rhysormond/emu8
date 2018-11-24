@@ -31,6 +31,7 @@ name = "emu8"
 version = "0.1.0"
 dependencies = [
  "clippy 0.0.302 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "sdl2 0.31.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
