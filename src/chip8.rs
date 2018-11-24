@@ -176,7 +176,7 @@ impl Chip8 {
     fn execute_op(&mut self, op: u16) {
         // How much to increment the pc after executing this op
         let mut pc_increment: u16 = 2;
-        match op.as_nibbles() {
+        match op.nibbles() {
             (0x0, 0x0, 0xE, 0x0) => {
                 // Clear the display
                 println!("CLS  |");
@@ -210,7 +210,7 @@ impl Chip8 {
             }
             (0x3, x, ..) => {
                 // Skip next instruction if Vx == kk
-                let kk = (op & 0x00FF) as u8;
+                let kk = op.byte();
                 println!("SE   | V{:X} == {:X}", x, kk);
                 if self.v[x as usize] == kk {
                     self.pc += 0x2;
@@ -218,7 +218,7 @@ impl Chip8 {
             }
             (0x4, x, ..) => {
                 // Skip next instruction if Vx != kk
-                let kk = (op & 0x00FF) as u8;
+                let kk = op.byte();
                 println!("SNE  | V{:X} != {:X}", x, kk);
                 if self.v[x as usize] != kk {
                     self.pc += 0x2;
@@ -233,13 +233,13 @@ impl Chip8 {
             }
             (0x6, x, ..) => {
                 // Vx = kk
-                let kk = (op & 0x00FF) as u8;
+                let kk = op.byte();
                 println!("LD   | V{:X} = {:X}", x, kk);
                 self.v[x as usize] = kk;
             }
             (0x7, x, ..) => {
                 // Vx += kk
-                let kk = (op & 0x00FF) as u8;
+                let kk = op.byte();
                 println!("Add  | V{:X} += {:X}", x, kk);
                 self.v[x as usize] += kk;
             }
@@ -323,12 +323,14 @@ impl Chip8 {
                 pc_increment = 0;
             }
             (0xC, x, ..) => {
-                let kk = (op & 0x00FF) as u8;
+                // Vx = rand + kk
+                let kk = op.byte();
                 println!("RND  | V{:X} = rand + {:X}", x, kk);
                 let rand_byte: u8 = rand::random();
                 self.v[x as usize] = rand_byte + kk;
             }
             (0xD, x, y, n) => {
+                // Draw data read from memory at I..I+n at coordinates x,y
                 println!("DRW  | x=V{:X} y=V{:X} size={:X}", x, y, n);
                 self.draw_sprite(x, y, n);
             }
