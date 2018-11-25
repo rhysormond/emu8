@@ -15,7 +15,7 @@ mod opcode;
 mod sprites;
 
 fn main() {
-    // TODO Error handling
+    // TODO error handling
     // Initializing State
     let sdl = sdl2::init().unwrap();
     let mut chip8 = chip8::Chip8::new();
@@ -35,38 +35,32 @@ fn main() {
     // Timing (the Chip-8 has a frame_rate of 60Hz -> 16.7 milliseconds/frame)
     let frame_rate = Duration::new(0, 16_666_667);
     let mut last_frame = Instant::now();
-    // TODO Log stuff to see what's actually going on
+    let mut fast_forward = false;
+    // TODO use a logger instead of print statements
     'event: loop {
         if chip8.should_draw {
             // Get the state of the Chip-8 FrameBuffer and draw it
             display.render(&chip8.frame_buffer);
         }
 
-        // Check for any input and handle it
+        // Check and handle input
         for event in events.poll_iter() {
             match event {
-                // Break the event loop
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'event,
-                // Handle other actual input
+                Event::Quit { .. } => break 'event,
                 Event::KeyDown {
                     keycode: Some(key), ..
-                } => {
-                    if let Some(key) = keymap::keymap(key) {
-                        chip8.key_press(key)
-                    }
-                }
+                } => match (key, keymap::keymap(key)) {
+                    (_, Some(kc)) => chip8.key_press(kc),
+                    (Keycode::Space, _) => fast_forward = true,
+                    _ => continue,
+                },
                 Event::KeyUp {
-                    keycode: Some(key_code),
-                    ..
-                } => {
-                    if let Some(key) = keymap::keymap(key_code) {
-                        chip8.key_release(key)
-                    }
-                }
+                    keycode: Some(key), ..
+                } => match (key, keymap::keymap(key)) {
+                    (_, Some(kc)) => chip8.key_release(kc),
+                    (Keycode::Space, _) => fast_forward = false,
+                    _ => continue,
+                },
                 _ => continue,
             };
         }
@@ -77,7 +71,7 @@ fn main() {
         // Handle Timing
         let current_time = Instant::now();
         let current_cycle_time = current_time - last_frame;
-        if frame_rate > current_cycle_time {
+        if !fast_forward && frame_rate > current_cycle_time {
             std::thread::sleep(frame_rate - current_cycle_time);
         }
         last_frame = Instant::now();
