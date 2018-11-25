@@ -178,205 +178,165 @@ impl Chip8 {
         let mut pc_increment: u16 = 2;
         match op.nibbles() {
             (0x0, 0x0, 0xE, 0x0) => {
-                // Clear the display
-                println!("CLS  |");
+                println!("CLS  | clear the display");
                 self.frame_buffer = [[0; 32]; 64];
             }
             (0x0, 0x0, 0xE, 0xE) => {
-                // Return from subroutine
-                println!("RET  |");
+                println!("RET  | pc = stack.pop(); return from subroutine");
                 self.pc = self.stack[self.sp as usize];
                 self.sp -= 0x1;
-                // Don't increment the pc this cycle
                 pc_increment = 0;
             }
             (0x1, ..) => {
-                // Jump to addr
                 let addr = op.addr();
-                println!("JP   | {:X}", addr);
+                println!("JP   | pc = {:X}; jump to addr", addr);
                 self.pc = addr;
-                // Don't increment the pc this cycle
                 pc_increment = 0;
             }
             (0x2, ..) => {
-                // Call addr
                 let addr = op.addr();
-                println!("CALL | {:X}", addr);
+                println!("CALL | stack.push(PC); pc = {:X}; call addr", addr);
                 self.sp += 0x1;
                 self.stack[self.sp as usize] = self.pc;
                 self.pc = addr;
-                // Don't increment the pc this cycle
                 pc_increment = 0;
             }
             (0x3, x, ..) => {
-                // Skip next instruction if Vx == kk
                 let kk = op.byte();
-                println!("SE   | V{:X} == {:X}", x, kk);
+                println!("SE   | if V{:X} == {:X} pc += 2; skip next instruction", x, kk);
                 if self.v[x as usize] == kk {
                     self.pc += 0x2;
                 };
             }
             (0x4, x, ..) => {
-                // Skip next instruction if Vx != kk
                 let kk = op.byte();
-                println!("SNE  | V{:X} != {:X}", x, kk);
+                println!("SNE  | if V{:X} != {:X} pc += 2; skip next instruction", x, kk);
                 if self.v[x as usize] != kk {
                     self.pc += 0x2;
                 };
             }
             (0x5, x, y, 0) => {
-                // Skip next instruction if Vx == Vy
-                println!("SE   | V{:X} == V{:X}", x, y);
+                println!("SE   | if V{:X} == V{:X} pc += 2; skip next instruction", x, y);
                 if self.v[x as usize] == self.v[y as usize] {
                     self.pc += 0x2;
                 };
             }
             (0x6, x, ..) => {
-                // Vx = kk
                 let kk = op.byte();
                 println!("LD   | V{:X} = {:X}", x, kk);
                 self.v[x as usize] = kk;
             }
             (0x7, x, ..) => {
-                // Vx += kk
                 let kk = op.byte();
                 println!("Add  | V{:X} += {:X}", x, kk);
                 self.v[x as usize] += kk;
             }
             (0x8, x, y, 0x0) => {
-                // Vx = Vy
                 println!("LD   | V{:X} = V{:X}", x, y);
                 self.v[x as usize] = self.v[y as usize];
             }
             (0x8, x, y, 0x1) => {
-                // Vx = Vx OR Vy
                 println!("OR   | V{:X} |= V{:X}", x, y);
                 self.v[x as usize] |= self.v[y as usize];
             }
             (0x8, x, y, 0x2) => {
-                // Vx = Vx AND Vy
                 println!("AND  | V{:X} &= V{:X}", x, y);
                 self.v[x as usize] &= self.v[y as usize];
             }
             (0x8, x, y, 0x3) => {
-                // Vx = Vx XOR Vy
                 println!("XOR  | V{:X} ^= V{:X}", x, y);
                 self.v[x as usize] ^= self.v[y as usize];
             }
             (0x8, x, y, 0x4) => {
-                // Vx = Vx + Vy
-                // VF = overflow
-                println!("ADD  | V{:X}.overflow_add(V{:X})", x, y);
+                println!("ADD  | V{:X} = V{:X}.overflowing_add(V{:X}); VF = overflow", x, x, y);
                 let (result, overflow) = self.v[x as usize].overflowing_add(self.v[y as usize]);
                 self.v[0xF] = if overflow { 0x1 } else { 0x0 };
                 self.v[x as usize] = result;
             }
             (0x8, x, y, 0x5) => {
-                // Vx = Vx - Vy
-                // VF = not borrow
-                println!("SUB  | V{:X}.overflow_sub(V{:X})", x, y);
+                println!("SUB  | V{:X} = V{:X}.overflowing_sub(V{:X}); VF = !overflow", x, x, y);
                 let (result, overflow) = self.v[x as usize].overflowing_sub(self.v[y as usize]);
                 self.v[0xF] = if !overflow { 0x1 } else { 0x0 };
                 self.v[x as usize] = result;
             }
             (0x8, x, _, 0x6) => {
-                // VF = Vx least significant bit == 1
-                // Vx /= 2
-                println!("SHR  | V{:X}", x);
+                println!("SHR  | VF = V{:X} & 0x1; V{:X} /= 2", x, x);
                 self.v[0xF] = self.v[x as usize] & 0x1;
                 self.v[x as usize] /= 0x2;
             }
             (0x8, x, y, 0x7) => {
-                // Vx = Vy - Vx
-                // Vx = not borrow
-                println!("SUBN | !V{:X}.overflowing_sub(V{:X})", x, y);
+                println!("SUBN | V{:X} = V{:X}.overflowing_sub(V{:X}); VF = overflow", x, y, x);
                 let (result, overflow) = self.v[y as usize].overflowing_sub(self.v[x as usize]);
                 self.v[0xF] = if overflow { 0x1 } else { 0x0 };
                 self.v[x as usize] = result;
             }
             (0x8, x, _, 0xE) => {
-                // VF = Vx least significant bit == 1
-                // Vx *= Vx
-                println!("SHL  | V{:X}", x);
+                println!("SHL  | VF = V{:X} & 0x1; V{:X} *= 2", x, x);
                 self.v[0xF] = self.v[x as usize] & 0x1;
                 self.v[x as usize] *= 0x2;
             }
             (0x9, x, y, 0x0) => {
-                // Skip next instruction if Vx != Vy
-                println!("SNE  | V{:X} != V{:X}", x, y);
+                println!("SNE  | if V{:X} != V{:X} pc +=2; skip next instruction", x, y);
                 if self.v[x as usize] != self.v[y as usize] {
                     self.pc += 0x2
                 };
             }
             (0xA, ..) => {
-                // Set address register to addr
                 let addr = op.addr();
                 println!("LD   | I = {:X}", addr);
                 self.i = addr;
             }
             (0xB, ..) => {
-                // Set program counter to V0 + addr
                 let addr = op.addr();
                 println!("JP   | PC = V0 + {:X}", addr);
                 self.pc = self.v[0x0] as u16 + addr;
-                // Don't increment the pc this cycle
                 pc_increment = 0;
             }
             (0xC, x, ..) => {
-                // Vx = rand + kk
                 let kk = op.byte();
-                println!("RND  | V{:X} = rand + {:X}", x, kk);
+                println!("RND  | V{:X} = rand_byte + {:X}", x, kk);
                 let rand_byte: u8 = rand::random();
                 self.v[x as usize] = rand_byte + kk;
             }
             (0xD, x, y, n) => {
-                // Draw data read from memory at I..I+n at coordinates x,y
-                println!("DRW  | x=V{:X} y=V{:X} size={:X}", x, y, n);
+                println!("DRW  | draw_sprite(x=V{:X} y=V{:X} size={:X})", x, y, n);
                 self.draw_sprite(x, y, n);
             }
             (0xE, x, 0x9, 0xE) => {
-                // Skip the next instruction if key Vx is pressed
-                println!("SKP  | skip if V{:X} is pressed", x);
+                println!("SKP  | if V{:X} pressed pc += 2; skip next instruction", x);
                 if self.pressed_keys[self.v[x as usize] as usize] == 0x1 {
                     self.pc += 2;
                 };
             }
             (0xE, x, 0xA, 0x1) => {
-                // Skip the next instruction if key Vx is not pressed
-                println!("SKNP | skip if V{:X} is not pressed", x);
+                println!("SKNP | if V{:X} !pressed pc += 2; skip next instruction", x);
                 if self.pressed_keys[self.v[x as usize] as usize] == 0x0 {
                     self.pc += 2;
                 };
             }
             (0xF, x, 0x0, 0x7) => {
-                // Vx = delay_timer
                 println!("LD   | V{:X} = DT", x);
                 self.v[x as usize] = self.delay_timer;
             }
             (0xF, x, 0x0, 0xA) => {
-                // Await keypress and store it in Vx
-                println!("LD   | V{:X} = keypress", x);
+                println!("LD   | V{:X} = await_keypress", x);
                 self.register_needing_key = Some(x)
             }
             (0xF, x, 0x1, 0x5) => {
-                // delay_timer = Vx
                 println!("LD   | DT = V{:X}", x);
                 self.delay_timer = self.v[x as usize];
             }
             (0xF, x, 0x1, 0x8) => {
-                // sound_timer = Vx
                 println!("LD   | ST = V{:X}", x);
                 self.sound_timer = self.v[x as usize];
             }
             (0xF, x, 0x1, 0xE) => {
-                // I = I + Vx
                 println!("ADD  | I += V{:X}", x);
                 self.i += self.v[x as usize] as u16;
             }
             (0xF, x, 0x2, 0x9) => {
-                // I = memory addr for the hexadecimal sprite Vx
                 // See sprites::SPRITE_SHEET for more details
-                println!("LD   | I = V{:X} * 5", x);
+                println!("LD   | I = V{:X} * 5; set I to address of sprite V{:X}", x, x);
                 self.i = self.v[x as usize] as u16 * 5;
             }
             (0xF, x, 0x3, 0x3) => {
