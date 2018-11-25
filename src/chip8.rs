@@ -147,7 +147,7 @@ impl Chip8 {
     /// * `n` - The sprite is read from bytes I..n
     fn draw_sprite(&mut self, x: u8, y: u8, n: u8) {
         self.should_draw = true;
-        self.v[0xF] = 0;
+        self.v[0xF] = 0x0;
 
         let sprite_x = self.v[x as usize];
         let sprite_y = self.v[y as usize];
@@ -168,7 +168,7 @@ impl Chip8 {
                 self.frame_buffer[pixel_x][pixel_y] ^= pixel_value;
 
                 if self.frame_buffer[pixel_x][pixel_y] != old_value {
-                    self.v[0xF] = 1;
+                    self.v[0xF] = 0x1;
                 }
             }
         }
@@ -182,49 +182,51 @@ impl Chip8 {
     /// * `op` a 16-bit opcode
     fn execute_op(&mut self, op: u16) {
         // TODO refactor this to eliminate some repetition
-        // How much to increment the pc after executing this op
-        let mut pc_increment: u16 = 2;
+        print!("{:04X} ", op);
+
+        // how much to increment pc after executing the op
+        let mut pc_bump: u16 = 0x2;
         match op.nibbles() {
             (0x0, 0x0, 0xE, 0x0) => {
-                println!("CLS  | clear the display");
+                println!("CLS  | clear");
                 self.frame_buffer = [[0; 32]; 64];
             }
             (0x0, 0x0, 0xE, 0xE) => {
-                println!("RET  | pc = stack.pop(); return from subroutine");
+                println!("RET  | PC = STACK.pop()");
                 self.pc = self.stack[self.sp as usize];
                 self.sp -= 0x1;
-                pc_increment = 0;
+                pc_bump = 0x0;
             }
             (0x1, ..) => {
                 let addr = op.addr();
-                println!("JP   | pc = {:X}; jump to addr", addr);
+                println!("JP   | PC = {:04X}", addr);
                 self.pc = addr;
-                pc_increment = 0;
+                pc_bump = 0x0;
             }
             (0x2, ..) => {
                 let addr = op.addr();
-                println!("CALL | stack.push(PC); pc = {:X}; call addr", addr);
+                println!("CALL | STACK.push(PC); PC = {:04X}", addr);
                 self.sp += 0x1;
                 self.stack[self.sp as usize] = self.pc;
                 self.pc = addr;
-                pc_increment = 0;
+                pc_bump = 0x0;
             }
             (0x3, x, ..) => {
                 let kk = op.byte();
-                println!("SE   | if V{:X} == {:X} pc += 2; skip next instruction", x, kk);
+                println!("SE   | if V{:X} == {:X} pc += 2", x, kk);
                 if self.v[x as usize] == kk {
                     self.pc += 0x2;
                 };
             }
             (0x4, x, ..) => {
                 let kk = op.byte();
-                println!("SNE  | if V{:X} != {:X} pc += 2; skip next instruction", x, kk);
+                println!("SNE  | if V{:X} != {:X} pc += 2", x, kk);
                 if self.v[x as usize] != kk {
                     self.pc += 0x2;
                 };
             }
-            (0x5, x, y, 0) => {
-                println!("SE   | if V{:X} == V{:X} pc += 2; skip next instruction", x, y);
+            (0x5, x, y, 0x0) => {
+                println!("SE   | if V{:X} == V{:X} pc += 2", x, y);
                 if self.v[x as usize] == self.v[y as usize] {
                     self.pc += 0x2;
                 };
@@ -256,16 +258,16 @@ impl Chip8 {
                 self.v[x as usize] ^= self.v[y as usize];
             }
             (0x8, x, y, 0x4) => {
-                println!("ADD  | V{:X} = V{:X}.overflowing_add(V{:X}); VF = overflow", x, x, y);
-                let (result, overflow) = self.v[x as usize].overflowing_add(self.v[y as usize]);
-                self.v[0xF] = if overflow { 0x1 } else { 0x0 };
-                self.v[x as usize] = result;
+                println!("ADD  | V{:X} += V{:X}; VF = overflow", x, y);
+                let (res, over) = self.v[x as usize].overflowing_add(self.v[y as usize]);
+                self.v[0xF] = if over { 0x1 } else { 0x0 };
+                self.v[x as usize] = res;
             }
             (0x8, x, y, 0x5) => {
-                println!("SUB  | V{:X} = V{:X}.overflowing_sub(V{:X}); VF = !overflow", x, x, y);
-                let (result, overflow) = self.v[x as usize].overflowing_sub(self.v[y as usize]);
-                self.v[0xF] = if !overflow { 0x1 } else { 0x0 };
-                self.v[x as usize] = result;
+                println!("SUB  | V{:X} -= V{:X}; VF = !underflow", x, y);
+                let (res, under) = self.v[x as usize].overflowing_sub(self.v[y as usize]);
+                self.v[0xF] = if under { 0x0 } else { 0x1 };
+                self.v[x as usize] = res;
             }
             (0x8, x, _, 0x6) => {
                 println!("SHR  | VF = V{:X} & 0x1; V{:X} /= 2", x, x);
@@ -273,10 +275,10 @@ impl Chip8 {
                 self.v[x as usize] /= 0x2;
             }
             (0x8, x, y, 0x7) => {
-                println!("SUBN | V{:X} = V{:X}.overflowing_sub(V{:X}); VF = overflow", x, y, x);
-                let (result, overflow) = self.v[y as usize].overflowing_sub(self.v[x as usize]);
-                self.v[0xF] = if overflow { 0x1 } else { 0x0 };
-                self.v[x as usize] = result;
+                println!("SUBN | V{:X} = V{:X} - V{:X}; VF = underflow", x, y, x);
+                let (res, under) = self.v[y as usize].overflowing_sub(self.v[x as usize]);
+                self.v[0xF] = if under { 0x1 } else { 0x0 };
+                self.v[x as usize] = res;
             }
             (0x8, x, _, 0xE) => {
                 println!("SHL  | VF = V{:X} & 0x1; V{:X} *= 2", x, x);
@@ -284,21 +286,21 @@ impl Chip8 {
                 self.v[x as usize] *= 0x2;
             }
             (0x9, x, y, 0x0) => {
-                println!("SNE  | if V{:X} != V{:X} pc +=2; skip next instruction", x, y);
+                println!("SNE  | if V{:X} != V{:X} pc +=2", x, y);
                 if self.v[x as usize] != self.v[y as usize] {
                     self.pc += 0x2
                 };
             }
             (0xA, ..) => {
                 let addr = op.addr();
-                println!("LD   | I = {:X}", addr);
+                println!("LD   | I = {:04X}", addr);
                 self.i = addr;
             }
             (0xB, ..) => {
                 let addr = op.addr();
-                println!("JP   | PC = V0 + {:X}", addr);
+                println!("JP   | PC = V0 + {:04X}", addr);
                 self.pc = self.v[0x0] as u16 + addr;
-                pc_increment = 0;
+                pc_bump = 0x0;
             }
             (0xC, x, ..) => {
                 let kk = op.byte();
@@ -311,15 +313,15 @@ impl Chip8 {
                 self.draw_sprite(x, y, n);
             }
             (0xE, x, 0x9, 0xE) => {
-                println!("SKP  | if V{:X} pressed pc += 2; skip next instruction", x);
+                println!("SKP  | if V{:X}.pressed pc += 2", x);
                 if self.pressed_keys[self.v[x as usize] as usize] == 0x1 {
-                    self.pc += 2;
+                    self.pc += 0x2;
                 };
             }
             (0xE, x, 0xA, 0x1) => {
-                println!("SKNP | if V{:X} !pressed pc += 2; skip next instruction", x);
+                println!("SKNP | if !V{:X}.pressed pc += 2", x);
                 if self.pressed_keys[self.v[x as usize] as usize] == 0x0 {
-                    self.pc += 2;
+                    self.pc += 0x2;
                 };
             }
             (0xF, x, 0x0, 0x7) => {
@@ -327,7 +329,7 @@ impl Chip8 {
                 self.v[x as usize] = self.delay_timer;
             }
             (0xF, x, 0x0, 0xA) => {
-                println!("LD   | V{:X} = await_keypress", x);
+                println!("LD   | await keypress for V{:X}", x);
                 self.register_needing_key = Some(x)
             }
             (0xF, x, 0x1, 0x5) => {
@@ -343,8 +345,9 @@ impl Chip8 {
                 self.i += self.v[x as usize] as u16;
             }
             (0xF, x, 0x2, 0x9) => {
+                // Set I to the memory address of the sprite for Vx
                 // See sprites::SPRITE_SHEET for more details
-                println!("LD   | I = V{:X} * 5; set I to address of sprite V{:X}", x, x);
+                println!("LD   | I = V{:X} * 5", x);
                 self.i = self.v[x as usize] as u16 * 5;
             }
             (0xF, x, 0x3, 0x3) => {
@@ -371,12 +374,12 @@ impl Chip8 {
             }
             other => panic!("Opcode {:?} is not implemented", other),
         }
-        self.pc += pc_increment;
+        self.pc += pc_bump;
     }
 }
 
 #[cfg(test)]
-mod test_opcode {
+mod test_chip8 {
     use super::*;
 
     #[test]
@@ -659,7 +662,11 @@ mod test_opcode {
         expected[2][1..6].copy_from_slice(&[1, 0, 0, 0, 1]);
         expected[3][1..6].copy_from_slice(&[1, 0, 0, 0, 1]);
         expected[4][1..6].copy_from_slice(&[1, 1, 1, 1, 1]);
-        assert!(chip8.frame_buffer.iter().zip(expected.iter()).all(|(a,b)| a == b));
+        assert!(chip8
+            .frame_buffer
+            .iter()
+            .zip(expected.iter())
+            .all(|(a, b)| a == b));
     }
 
     #[test]
@@ -667,7 +674,7 @@ mod test_opcode {
         let mut chip8 = Chip8::new();
         chip8.frame_buffer[0][0] = 1;
         chip8.draw_sprite(0, 0, 1);
-        assert_eq!(chip8.v[0xF], 1)
+        assert_eq!(chip8.v[0xF], 0x1)
     }
 
     #[test]
@@ -746,7 +753,6 @@ mod test_opcode {
         chip8.cycle();
         assert_eq!(chip8.v[0x1], 0xE);
     }
-
 
     #[test]
     fn test_fx15_ld() {
