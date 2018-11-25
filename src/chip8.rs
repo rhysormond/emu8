@@ -101,6 +101,10 @@ impl Chip8 {
     }
 
     /// Executes a single CPU cycle
+    /// - breaks if awaiting a keypress
+    /// - unsets the draw flag
+    /// - gets the next opcode and executes it
+    /// - decrements the delay and sound timers
     pub fn cycle(&mut self) {
         if self.register_needing_key == None {
             // Turn off the draw flag, it gets set whenever we draw a sprite
@@ -123,9 +127,9 @@ impl Chip8 {
         // TODO save state
     }
 
-    /// Gets the opcode pointed to by the program_counter
-    /// Interpreter memory is stored as bytes, but opcodes are 16 bits.
-    /// Because of this we need to combine subsequent bytes.
+    /// Gets the opcode currently pointed at by the pc.
+    ///
+    /// Memory is stored as bytes, but opcodes are 16 bits so we combine two subsequent bytes.
     fn get_op(&self) -> u16 {
         let left = u16::from(self.memory[self.pc as usize]);
         let right = u16::from(self.memory[self.pc as usize + 1]);
@@ -170,10 +174,14 @@ impl Chip8 {
         }
     }
 
-    // TODO refactor this to eliminate some repetition
-    // TODO double check which opcodes should(n't) increment the pc
     /// Execute a single opcode
+    ///
+    /// Match the opcode's nibbles against a table and use them to conditionally edit memory.
+    ///
+    /// # Arguments
+    /// * `op` a 16-bit opcode
     fn execute_op(&mut self, op: u16) {
+        // TODO refactor this to eliminate some repetition
         // How much to increment the pc after executing this op
         let mut pc_increment: u16 = 2;
         match op.nibbles() {
@@ -364,5 +372,440 @@ impl Chip8 {
             other => panic!("Opcode {:?} is not implemented", other),
         }
         self.pc += pc_increment;
+    }
+}
+
+#[cfg(test)]
+mod test_opcode {
+    use super::*;
+
+    #[test]
+    fn test_chip8_get_op() {
+        let mut chip8 = Chip8::new();
+        chip8.memory[0x200..0x202].copy_from_slice(&[0xAA, 0xBB]);
+        assert_eq!(chip8.get_op(), 0xAABB);
+    }
+
+    #[test]
+    fn test_00e0_cls() {
+        let mut chip8 = Chip8::new();
+        chip8.frame_buffer[0][0] = 1;
+        chip8.execute_op(0x00E0);
+        assert_eq!(chip8.frame_buffer[0][0], 0);
+    }
+
+    #[test]
+    fn test_00ee_ret() {
+        let mut chip8 = Chip8::new();
+        chip8.sp = 0x1;
+        chip8.stack[chip8.sp as usize] = 0xABCD;
+        chip8.execute_op(0x00EE);
+        assert_eq!(chip8.sp, 0x0);
+        assert_eq!(chip8.pc, 0xABCD);
+    }
+
+    #[test]
+    fn test_1nnn_jp() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0x1ABC);
+        assert_eq!(chip8.pc, 0x0ABC);
+    }
+
+    #[test]
+    fn test_2nnn_call() {
+        let mut chip8 = Chip8::new();
+        chip8.pc = 0xABCD;
+        chip8.execute_op(0x2123);
+        assert_eq!(chip8.sp, 0x1);
+        assert_eq!(chip8.stack[chip8.sp as usize], 0xABCD);
+        assert_eq!(chip8.pc, 0x0123);
+    }
+
+    #[test]
+    fn test_3xkk_se_skips() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x11;
+        chip8.execute_op(0x3111);
+        assert_eq!(chip8.pc, 0x0204);
+    }
+
+    #[test]
+    fn test_3xkk_se_doesntskip() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0x3111);
+        assert_eq!(chip8.pc, 0x0202);
+    }
+
+    #[test]
+    fn test_4xkk_sne_skips() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0x4111);
+        assert_eq!(chip8.pc, 0x0204);
+    }
+
+    #[test]
+    fn test_3xkk_sne_doesntskip() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x11;
+        chip8.execute_op(0x4111);
+        assert_eq!(chip8.pc, 0x0202);
+    }
+
+    #[test]
+    fn test_5xy0_se_skips() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x11;
+        chip8.v[0x2] = 0x11;
+        chip8.execute_op(0x5120);
+        assert_eq!(chip8.pc, 0x0204);
+    }
+
+    #[test]
+    fn test_5xy0_se_doesntskip() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x11;
+        chip8.execute_op(0x5120);
+        assert_eq!(chip8.pc, 0x0202);
+    }
+
+    #[test]
+    fn test_6xkk_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0x6122);
+        assert_eq!(chip8.v[0x1], 0x22);
+    }
+
+    #[test]
+    fn test_7xkk_add() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x1;
+        chip8.execute_op(0x7122);
+        assert_eq!(chip8.v[0x1], 0x23);
+    }
+
+    #[test]
+    fn test_8xy0_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x2] = 0x1;
+        chip8.execute_op(0x8120);
+        assert_eq!(chip8.v[0x1], 0x1);
+    }
+
+    #[test]
+    fn test_8xy1_or() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x6;
+        chip8.v[0x2] = 0x3;
+        chip8.execute_op(0x8121);
+        assert_eq!(chip8.v[0x1], 0x7);
+    }
+
+    #[test]
+    fn test_8xy2_and() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x6;
+        chip8.v[0x2] = 0x3;
+        chip8.execute_op(0x8122);
+        assert_eq!(chip8.v[0x1], 0x2);
+    }
+
+    #[test]
+    fn test_8xy3_xor() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x6;
+        chip8.v[0x2] = 0x3;
+        chip8.execute_op(0x8123);
+        assert_eq!(chip8.v[0x1], 0x5);
+    }
+
+    #[test]
+    fn test_8xy4_add_nocarry() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0xEE;
+        chip8.v[0x2] = 0x11;
+        chip8.execute_op(0x8124);
+        assert_eq!(chip8.v[0x1], 0xFF);
+        assert_eq!(chip8.v[0xF], 0x0);
+    }
+
+    #[test]
+    fn test_8xy4_add_carry() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0xFF;
+        chip8.v[0x2] = 0x11;
+        chip8.execute_op(0x8124);
+        assert_eq!(chip8.v[0x1], 0x10);
+        assert_eq!(chip8.v[0xF], 0x1);
+    }
+
+    #[test]
+    fn test_8xy5_sub_nocarry() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x33;
+        chip8.v[0x2] = 0x11;
+        chip8.execute_op(0x8125);
+        assert_eq!(chip8.v[0x1], 0x22);
+        assert_eq!(chip8.v[0xF], 0x1);
+    }
+
+    #[test]
+    fn test_8xy5_sub_carry() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x11;
+        chip8.v[0x2] = 0x12;
+        chip8.execute_op(0x8125);
+        assert_eq!(chip8.v[0x1], 0xFF);
+        assert_eq!(chip8.v[0xF], 0x0);
+    }
+
+    #[test]
+    fn test_8xy6_shr_lsb() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x5;
+        chip8.execute_op(0x8106);
+        assert_eq!(chip8.v[0x1], 0x2);
+        assert_eq!(chip8.v[0xF], 0x1);
+    }
+
+    #[test]
+    fn test_8xy6_shr_nolsb() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x4;
+        chip8.execute_op(0x8106);
+        assert_eq!(chip8.v[0x1], 0x2);
+        assert_eq!(chip8.v[0xF], 0x0);
+    }
+
+    #[test]
+    fn test_8xy7_subn_nocarry() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x11;
+        chip8.v[0x2] = 0x33;
+        chip8.execute_op(0x8127);
+        assert_eq!(chip8.v[0x1], 0x22);
+        assert_eq!(chip8.v[0xF], 0x0);
+    }
+
+    #[test]
+    fn test_8xy7_subn_carry() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x12;
+        chip8.v[0x2] = 0x11;
+        chip8.execute_op(0x8127);
+        assert_eq!(chip8.v[0x1], 0xFF);
+        assert_eq!(chip8.v[0xF], 0x1);
+    }
+
+    #[test]
+    fn test_8xye_shl_lsb() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x5;
+        chip8.execute_op(0x810E);
+        assert_eq!(chip8.v[0x1], 0xA);
+        assert_eq!(chip8.v[0xF], 0x1);
+    }
+
+    #[test]
+    fn test_8xye_shl_nolsb() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x4;
+        chip8.execute_op(0x810E);
+        assert_eq!(chip8.v[0x1], 0x8);
+        assert_eq!(chip8.v[0xF], 0x0);
+    }
+
+    #[test]
+    fn test_9xy0_sne_skips() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x11;
+        chip8.execute_op(0x9120);
+        assert_eq!(chip8.pc, 0x0204);
+    }
+
+    #[test]
+    fn test_9xy0_sne_doesntskip() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x11;
+        chip8.v[0x2] = 0x11;
+        chip8.execute_op(0x9120);
+        assert_eq!(chip8.pc, 0x0202);
+    }
+
+    #[test]
+    fn test_annn_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0xAABC);
+        assert_eq!(chip8.i, 0xABC);
+    }
+
+    #[test]
+    fn test_bnnn_jp() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x0] = 0x2;
+        chip8.execute_op(0xBABC);
+        assert_eq!(chip8.pc, 0xABE);
+    }
+
+    // Not testing cxkk as it generates a random number
+
+    #[test]
+    fn test_dxyn_drw_draws() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x0] = 0x1;
+        // Draw the 0x0 sprite with a 1x 1y offset
+        chip8.draw_sprite(0, 0, 5);
+        let mut expected: [[u8; 32]; 64] = [[0; 32]; 64];
+        expected[1][1..6].copy_from_slice(&[1, 1, 1, 1, 1]);
+        expected[2][1..6].copy_from_slice(&[1, 0, 0, 0, 1]);
+        expected[3][1..6].copy_from_slice(&[1, 0, 0, 0, 1]);
+        expected[4][1..6].copy_from_slice(&[1, 1, 1, 1, 1]);
+        assert!(chip8.frame_buffer.iter().zip(expected.iter()).all(|(a,b)| a == b));
+    }
+
+    #[test]
+    fn test_dxyn_drw_collides() {
+        let mut chip8 = Chip8::new();
+        chip8.frame_buffer[0][0] = 1;
+        chip8.draw_sprite(0, 0, 1);
+        assert_eq!(chip8.v[0xF], 1)
+    }
+
+    #[test]
+    fn test_dxyn_drw_xors() {
+        let mut chip8 = Chip8::new();
+        // 0 1 0 1 -> Set
+        chip8.frame_buffer[0][3..7].copy_from_slice(&[0, 1, 0, 1]);
+        // 1 1 0 0 -> Draw xor
+        chip8.draw_sprite(0, 0, 5);
+        assert_eq!(chip8.frame_buffer[0][3..7], [1, 0, 0, 1])
+    }
+
+    #[test]
+    fn test_ex9e_skp_skips() {
+        let mut chip8 = Chip8::new();
+        chip8.key_press(0xE);
+        chip8.v[0x1] = 0xE;
+        chip8.execute_op(0xE19E);
+        assert_eq!(chip8.pc, 0x0204);
+    }
+
+    #[test]
+    fn test_ex9e_skp_doesntskip() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0xE19E);
+        assert_eq!(chip8.pc, 0x0202);
+    }
+
+    #[test]
+    fn test_exa1_sknp_skips() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0xE1A1);
+        assert_eq!(chip8.pc, 0x0204);
+    }
+
+    #[test]
+    fn test_exa1_sknp_doesntskip() {
+        let mut chip8 = Chip8::new();
+        chip8.key_press(0xE);
+        chip8.v[0x1] = 0xE;
+        chip8.execute_op(0xE1A1);
+        assert_eq!(chip8.pc, 0x0202);
+    }
+
+    #[test]
+    fn test_fx07_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.delay_timer = 0xF;
+        chip8.execute_op(0xF107);
+        assert_eq!(chip8.v[0x1], 0xF);
+    }
+
+    #[test]
+    fn test_fx0a_ld_doesntcyclecycle() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0xF10A);
+        assert_eq!(chip8.pc, 0x0202);
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x0202);
+    }
+
+    #[test]
+    fn test_fx0a_ld_awaitskeypress() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0xF10A);
+        assert_eq!(chip8.register_needing_key, Some(0x1));
+    }
+
+    #[test]
+    fn test_fx0a_ld_captureskeypress() {
+        let mut chip8 = Chip8::new();
+        chip8.execute_op(0xF10A);
+        chip8.key_press(0xE);
+        // insert a cls opcode so we don't panic at reading from empty memory
+        chip8.memory[0x202..0x204].copy_from_slice(&[0x00, 0xE0]);
+        chip8.cycle();
+        assert_eq!(chip8.v[0x1], 0xE);
+    }
+
+
+    #[test]
+    fn test_fx15_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0xF;
+        chip8.execute_op(0xf115);
+        assert_eq!(chip8.delay_timer, 0xF);
+    }
+
+    #[test]
+    fn test_fx18_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0xF;
+        chip8.execute_op(0xf118);
+        assert_eq!(chip8.sound_timer, 0xF);
+    }
+
+    #[test]
+    fn test_fx1e_add() {
+        let mut chip8 = Chip8::new();
+        chip8.i = 0x1;
+        chip8.v[0x1] = 0x1;
+        chip8.execute_op(0xF11E);
+        assert_eq!(chip8.i, 0x2);
+    }
+
+    #[test]
+    fn test_fx29_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.v[0x1] = 0x2;
+        chip8.execute_op(0xF129);
+        assert_eq!(chip8.i, 0xA);
+    }
+
+    #[test]
+    fn test_fx33_ld() {
+        let mut chip8 = Chip8::new();
+        // 0x6F -> 111
+        chip8.v[0x1] = 0x6F;
+        chip8.i = 0x200;
+        chip8.execute_op(0xF133);
+        assert_eq!(chip8.memory[0x200..0x203], [0x1, 0x1, 0x1]);
+    }
+
+    #[test]
+    fn test_fx_55_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.i = 0x200;
+        chip8.v[0x0..0x5].copy_from_slice(&[0x1, 0x2, 0x3, 0x4, 0x5]);
+        chip8.execute_op(0xF555);
+        assert_eq!(chip8.memory[0x200..0x205], [0x1, 0x2, 0x3, 0x4, 0x5]);
+    }
+
+    #[test]
+    fn test_fx_65_ld() {
+        let mut chip8 = Chip8::new();
+        chip8.i = 0x200;
+        chip8.memory[0x200..0x205].copy_from_slice(&[0x1, 0x2, 0x3, 0x4, 0x5]);
+        chip8.execute_op(0xF565);
+        assert_eq!(chip8.v[0x0..0x5], [0x1, 0x2, 0x3, 0x4, 0x5]);
     }
 }
