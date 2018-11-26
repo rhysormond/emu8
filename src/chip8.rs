@@ -163,16 +163,16 @@ impl Chip8 {
         let y_size = self.frame_buffer[0].len();
 
         for (y_idx, row_data) in sprite_data.iter().enumerate() {
-            // TODO figure out why this isn't equivalent to 0..8.rev() .. row_data >> x_idx
-            for x_idx in 0..8 {
-                let pixel_value: u8 = (row_data >> (7 - x_idx)) as u8 & 0x1;
+            for (x_idx, bit_shift) in (0..8).rev().enumerate() {
+                let pixel_value: u8 = (row_data >> bit_shift) as u8 & 0x1;
                 let pixel_x: usize = (sprite_x as usize + x_idx) % x_size;
                 let pixel_y: usize = (sprite_y as usize + y_idx) % y_size;
 
-                let old_value = self.frame_buffer[pixel_x][pixel_y];
-                self.frame_buffer[pixel_x][pixel_y] ^= pixel_value;
+                let ref mut pixel = self.frame_buffer[pixel_x][pixel_y];
+                let old_value = *pixel;
+                *pixel ^= pixel_value;
 
-                if self.frame_buffer[pixel_x][pixel_y] != old_value {
+                if *pixel != old_value {
                     self.v[0xF] = 0x1;
                 }
             }
