@@ -52,6 +52,7 @@ pub struct Chip8 {
     pub should_draw: bool,
     pressed_keys: [u8; 16],
     register_needing_key: Option<u8>,
+    pub should_decrement_timers: bool,
 }
 
 pub type FrameBuffer = [[u8; 32]; 64];
@@ -75,9 +76,10 @@ impl Chip8 {
             stack: [0; 16],
             memory,
             frame_buffer: [[0; 32]; 64],
+            should_draw: false,
             pressed_keys: [0; 16],
             register_needing_key: None,
-            should_draw: false,
+            should_decrement_timers: false,
         }
     }
 
@@ -113,15 +115,19 @@ impl Chip8 {
             let op: u16 = self.get_op();
             self.execute_op(op);
 
-            // The delay timer decrements every CPU cycle
-            if self.delay_timer > 0 {
-                self.delay_timer -= 1;
-            }
+            // TODO consider alternate ways of implementing this
+            if self.should_decrement_timers {
+                // The delay timer decrements every CPU cycle
+                if self.delay_timer > 0 {
+                    self.delay_timer -= 1;
+                }
 
-            // Each time the sound timer is decremented it triggers a beep
-            if self.sound_timer > 0 {
-                // TODO make some sound
-                self.sound_timer -= 1;
+                // Each time the sound timer is decremented it triggers a beep
+                if self.sound_timer > 0 {
+                    // TODO make some sound
+                    self.sound_timer -= 1;
+                }
+                self.should_decrement_timers = false;
             }
         }
         // TODO save state
@@ -182,6 +188,7 @@ impl Chip8 {
     /// * `op` a 16-bit opcode
     fn execute_op(&mut self, op: u16) {
         // TODO refactor this to eliminate some repetition
+        // TODO use a logger instead of print statements
         print!("{:04X} ", op);
 
         // how much to increment pc after executing the op
