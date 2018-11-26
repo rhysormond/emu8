@@ -152,7 +152,6 @@ impl Chip8 {
     /// * `y` - Vy is the y top left origin of the sprite
     /// * `n` - The sprite is read from bytes I..n
     fn draw_sprite(&mut self, x: u8, y: u8, n: u8) {
-        self.should_draw = true;
         self.v[0xF] = 0x0;
 
         let sprite_x = self.v[x as usize];
@@ -197,12 +196,12 @@ impl Chip8 {
             (0x0, 0x0, 0xE, 0x0) => {
                 println!("CLS  | clear");
                 self.frame_buffer = [[0; 32]; 64];
+                self.should_draw = true;
             }
             (0x0, 0x0, 0xE, 0xE) => {
                 println!("RET  | PC = STACK.pop()");
                 self.pc = self.stack[self.sp as usize];
                 self.sp -= 0x1;
-                pc_bump = 0x0;
             }
             (0x1, ..) => {
                 let addr = op.addr();
@@ -245,8 +244,10 @@ impl Chip8 {
             }
             (0x7, x, ..) => {
                 let kk = op.byte();
+                // Add kk to Vx, allow for overflow but implicitly drop it
                 println!("Add  | V{:X} += {:X}", x, kk);
-                self.v[x as usize] += kk;
+                let (res, _) = self.v[x as usize].overflowing_add(kk);
+                self.v[x as usize] = res;
             }
             (0x8, x, y, 0x0) => {
                 println!("LD   | V{:X} = V{:X}", x, y);
@@ -313,11 +314,12 @@ impl Chip8 {
                 let kk = op.byte();
                 println!("RND  | V{:X} = rand_byte + {:X}", x, kk);
                 let rand_byte: u8 = rand::random();
-                self.v[x as usize] = rand_byte + kk;
+                self.v[x as usize] = rand_byte & kk;
             }
             (0xD, x, y, n) => {
                 println!("DRW  | draw_sprite(x=V{:X} y=V{:X} size={:X})", x, y, n);
                 self.draw_sprite(x, y, n);
+                self.should_draw = true;
             }
             (0xE, x, 0x9, 0xE) => {
                 println!("SKP  | if V{:X}.pressed pc += 2", x);
