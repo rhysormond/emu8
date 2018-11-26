@@ -278,20 +278,21 @@ impl Chip8 {
                 self.v[x as usize] = res;
             }
             (0x8, x, _, 0x6) => {
-                println!("SHR  | VF = V{:X} & 0x1; V{:X} /= 2", x, x);
+                println!("SHR  | V{:X} /= 2; VF = underflow", x);
                 self.v[0xF] = self.v[x as usize] & 0x1;
                 self.v[x as usize] /= 0x2;
             }
             (0x8, x, y, 0x7) => {
                 println!("SUBN | V{:X} = V{:X} - V{:X}; VF = underflow", x, y, x);
                 let (res, under) = self.v[y as usize].overflowing_sub(self.v[x as usize]);
-                self.v[0xF] = if under { 0x1 } else { 0x0 };
+                self.v[0xF] = if under { 0x0 } else { 0x1 };
                 self.v[x as usize] = res;
             }
             (0x8, x, _, 0xE) => {
-                println!("SHL  | VF = V{:X} & 0x1; V{:X} *= 2", x, x);
-                self.v[0xF] = self.v[x as usize] & 0x1;
-                self.v[x as usize] *= 0x2;
+                println!("SHL  | V{:X} *= 2; VF = overflow", x);
+                let (res, over) = self.v[x as usize].overflowing_mul(2);
+                self.v[0xF] = if over { 0x1 } else { 0x0 };
+                self.v[x as usize] = res;
             }
             (0x9, x, y, 0x0) => {
                 println!("SNE  | if V{:X} != V{:X} pc +=2", x, y);
@@ -413,7 +414,8 @@ mod test_chip8 {
         chip8.stack[chip8.sp as usize] = 0xABCD;
         chip8.execute_op(0x00EE);
         assert_eq!(chip8.sp, 0x0);
-        assert_eq!(chip8.pc, 0xABCD);
+        // Add 2 to the program as it's bumped after opcode execution
+        assert_eq!(chip8.pc, 0xABCD + 0x2);
     }
 
     #[test]
@@ -595,7 +597,7 @@ mod test_chip8 {
         chip8.v[0x2] = 0x33;
         chip8.execute_op(0x8127);
         assert_eq!(chip8.v[0x1], 0x22);
-        assert_eq!(chip8.v[0xF], 0x0);
+        assert_eq!(chip8.v[0xF], 0x1);
     }
 
     #[test]
@@ -605,20 +607,21 @@ mod test_chip8 {
         chip8.v[0x2] = 0x11;
         chip8.execute_op(0x8127);
         assert_eq!(chip8.v[0x1], 0xFF);
-        assert_eq!(chip8.v[0xF], 0x1);
+        assert_eq!(chip8.v[0xF], 0x0);
     }
 
     #[test]
-    fn test_8xye_shl_lsb() {
+    fn test_8xye_shl_msb() {
         let mut chip8 = Chip8::new();
-        chip8.v[0x1] = 0x5;
+        chip8.v[0x1] = 0xFF;
         chip8.execute_op(0x810E);
-        assert_eq!(chip8.v[0x1], 0xA);
+        // 0xFF * 2 = 0x01FE
+        assert_eq!(chip8.v[0x1], 0xFE);
         assert_eq!(chip8.v[0xF], 0x1);
     }
 
     #[test]
-    fn test_8xye_shl_nolsb() {
+    fn test_8xye_shl_nomsb() {
         let mut chip8 = Chip8::new();
         chip8.v[0x1] = 0x4;
         chip8.execute_op(0x810E);
@@ -799,11 +802,11 @@ mod test_chip8 {
     #[test]
     fn test_fx33_ld() {
         let mut chip8 = Chip8::new();
-        // 0x6F -> 111
-        chip8.v[0x1] = 0x6F;
+        // 0x7B -> 123
+        chip8.v[0x1] = 0x7B;
         chip8.i = 0x200;
         chip8.execute_op(0xF133);
-        assert_eq!(chip8.memory[0x200..0x203], [0x1, 0x1, 0x1]);
+        assert_eq!(chip8.memory[0x200..0x203], [0x1, 0x2, 0x3]);
     }
 
     #[test]
