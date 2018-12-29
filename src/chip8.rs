@@ -381,16 +381,17 @@ impl Chip8 {
                 self.memory[self.i as usize..(self.i + 0x3) as usize].copy_from_slice(&bcd);
             }
             (0xF, x, 0x5, 0x5) => {
-                // Fill memory starting at address i with V0..Vx
+                // Fill memory starting at address i with V0..Vx+1
                 println!("LD   | mem[I..I+{:X}] = V0..V{:X}", x, x);
-                self.memory[self.i as usize..(self.i + x as u16) as usize]
-                    .copy_from_slice(&self.v[0x0 as usize..x as usize]);
+                self.memory[self.i as usize..(self.i + 1 + x as u16) as usize]
+                    .copy_from_slice(&self.v[0x0 as usize..1 + x as usize]);
             }
             (0xF, x, 0x6, 0x5) => {
-                // Fill V0..Vx with memory starting at address i
+                // Fill V0..Vx+1 with memory starting at address i
                 println!("LD   | V0..V{:X} = mem[I..I+{:X}]", x, x);
-                self.v[0x0 as usize..x as usize]
-                    .copy_from_slice(&self.memory[self.i as usize..(self.i + x as u16) as usize]);
+                self.v[0x0 as usize..1 + x as usize].copy_from_slice(
+                    &self.memory[self.i as usize..(self.i + 1 + x as u16) as usize],
+                );
             }
             other => panic!("Opcode {:?} is not implemented", other),
         }
