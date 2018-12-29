@@ -53,13 +53,15 @@ pub struct Chip8 {
     stack: [u16; 16],
     memory: [u8; 4096],
     pub frame_buffer: FrameBuffer,
-    pub should_draw: bool,
+    pub draw_flag: bool,
     pressed_keys: [u8; 16],
     register_needing_key: Option<u8>,
     delay_counter: u8,
 }
 
-pub type FrameBuffer = [[u8; 32]; 64];
+const DISPLAY_HEIGHT: usize = 32;
+const DISPLAY_WIDTH: usize = 64;
+pub type FrameBuffer = [[u8; DISPLAY_HEIGHT]; DISPLAY_WIDTH];
 
 impl Chip8 {
     pub fn new() -> Self {
@@ -80,7 +82,7 @@ impl Chip8 {
             stack: [0; 16],
             memory,
             frame_buffer: [[0; 32]; 64],
-            should_draw: false,
+            draw_flag: false,
             pressed_keys: [0; 16],
             register_needing_key: None,
             delay_counter: 0,
@@ -113,7 +115,7 @@ impl Chip8 {
     pub fn cycle_cpu(&mut self) {
         if self.register_needing_key == None {
             // Turn off the draw flag, it gets set whenever we draw a sprite
-            self.should_draw = false;
+            self.draw_flag = false;
             // Get and execute the next opcode
             let op: u16 = self.get_op();
             self.execute_op(op);
@@ -152,43 +154,6 @@ impl Chip8 {
         left << 8 | right
     }
 
-    /// Draw a sprite on the display with wrapping.
-    ///
-    /// Sprites are XOR'ed onto the FrameBuffer, if this erases any pixels VF is set to 1 else 0.
-    /// Sprites are 8 pixels wide by n pixels tall and are stored as n bytes.
-    ///
-    /// # Arguments
-    /// * `x` - Vx is the x top left origin of the sprite
-    /// * `y` - Vy is the y top left origin of the sprite
-    /// * `n` - The sprite is read from bytes I..n
-    fn draw_sprite(&mut self, x: u8, y: u8, n: u8) {
-        self.v[0xF] = 0x0;
-
-        let sprite_x = self.v[x as usize];
-        let sprite_y = self.v[y as usize];
-        let sprite_data = &self.memory[(self.i as usize)..((self.i + n as u16) as usize)];
-
-        // x/y dimensions of the display to handle wrapping
-        let x_size = self.frame_buffer.len();
-        let y_size = self.frame_buffer[0].len();
-
-        for (y_idx, row_data) in sprite_data.iter().enumerate() {
-            for (x_idx, bit_shift) in (0..8).rev().enumerate() {
-                let pixel_value: u8 = (row_data >> bit_shift) as u8 & 0x1;
-                let pixel_x: usize = (sprite_x as usize + x_idx) % x_size;
-                let pixel_y: usize = (sprite_y as usize + y_idx) % y_size;
-
-                let ref mut pixel = self.frame_buffer[pixel_x][pixel_y];
-                let old_value = *pixel;
-                *pixel ^= pixel_value;
-
-                if *pixel != old_value {
-                    self.v[0xF] = 0x1;
-                }
-            }
-        }
-    }
-
     /// Execute a single opcode
     ///
     /// Match the opcode's nibbles against a table and use them to conditionally edit memory.
@@ -206,7 +171,7 @@ impl Chip8 {
             (0x0, 0x0, 0xE, 0x0) => {
                 println!("CLS  | clear");
                 self.frame_buffer = [[0; 32]; 64];
-                self.should_draw = true;
+                self.draw_flag = true;
             }
             (0x0, 0x0, 0xE, 0xE) => {
                 println!("RET  | PC = STACK.pop()");
@@ -329,8 +294,21 @@ impl Chip8 {
             }
             (0xD, x, y, n) => {
                 println!("DRW  | draw_sprite(x=V{:X} y=V{:X} size={:X})", x, y, n);
-                self.draw_sprite(x, y, n);
-                self.should_draw = true;
+                // XORs a sprite from memory i..n at position x, y on the FrameBuffer with wrapping.
+                // Sets VF if any pixels would be erased
+                self.draw_flag = true;
+                self.v[0xF] = 0x0;
+
+                for byte in 0..n as usize {
+                    let y = (self.v[y as usize] as usize + byte) % DISPLAY_HEIGHT;
+                    for bit in 0..8 {
+                        let x = (self.v[x as usize] as usize + bit) % DISPLAY_WIDTH;
+                        let pixel_value = (self.memory[self.i as usize + byte] >> (7 - bit)) & 1;
+                        self.v[0xF] |= pixel_value & self.frame_buffer[x as usize][y as usize];
+                        self.frame_buffer[x as usize][y as usize] ^= pixel_value;
+                    }
+                }
+
             }
             (0xE, x, 0x9, 0xE) => {
                 println!("SKP  | if V{:X}.pressed pc += 2", x);
@@ -679,7 +657,7 @@ mod test_chip8 {
         let mut chip8 = Chip8::new();
         chip8.v[0x0] = 0x1;
         // Draw the 0x0 sprite with a 1x 1y offset
-        chip8.draw_sprite(0, 0, 5);
+        chip8.execute_op(0xD005);
         let mut expected: [[u8; 32]; 64] = [[0; 32]; 64];
         expected[1][1..6].copy_from_slice(&[1, 1, 1, 1, 1]);
         expected[2][1..6].copy_from_slice(&[1, 0, 0, 0, 1]);
@@ -696,7 +674,7 @@ mod test_chip8 {
     fn test_dxyn_drw_collides() {
         let mut chip8 = Chip8::new();
         chip8.frame_buffer[0][0] = 1;
-        chip8.draw_sprite(0, 0, 1);
+        chip8.execute_op(0xD001);
         assert_eq!(chip8.v[0xF], 0x1)
     }
 
@@ -706,7 +684,7 @@ mod test_chip8 {
         // 0 1 0 1 -> Set
         chip8.frame_buffer[0][3..7].copy_from_slice(&[0, 1, 0, 1]);
         // 1 1 0 0 -> Draw xor
-        chip8.draw_sprite(0, 0, 5);
+        chip8.execute_op(0xD005);
         assert_eq!(chip8.frame_buffer[0][3..7], [1, 0, 0, 1])
     }
 

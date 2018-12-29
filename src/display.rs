@@ -38,6 +38,7 @@ pub struct Window {
 }
 
 impl Window {
+    // TODO optimize this
     /// Draws a single Chip-8 pixel on the display, scaled appropriately.
     ///
     /// # Arguments
