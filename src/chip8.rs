@@ -39,6 +39,10 @@ use sprites::SPRITE_SHEET;
 /// - 16-bit array to track the pressed status of keys 0..F
 /// - Emulation may halt until a key's value is written to Some register
 ///
+/// ## Timing
+/// - The CPU should have a clock speed of 500Hz
+/// - The timers should be decremented at 60Hz
+///     - this is approximated as once every 8 CPU cycles
 pub struct Chip8 {
     v: [u8; 16],
     i: u16,
@@ -52,7 +56,7 @@ pub struct Chip8 {
     pub should_draw: bool,
     pressed_keys: [u8; 16],
     register_needing_key: Option<u8>,
-    pub should_decrement_timers: bool,
+    delay_counter: u8,
 }
 
 pub type FrameBuffer = [[u8; 32]; 64];
@@ -79,7 +83,7 @@ impl Chip8 {
             should_draw: false,
             pressed_keys: [0; 16],
             register_needing_key: None,
-            should_decrement_timers: false,
+            delay_counter: 0,
         }
     }
 
@@ -106,31 +110,37 @@ impl Chip8 {
     /// - breaks if awaiting a keypress
     /// - unsets the draw flag
     /// - gets the next opcode and executes it
-    /// - decrements the delay and sound timers
-    pub fn cycle(&mut self) {
+    pub fn cycle_cpu(&mut self) {
         if self.register_needing_key == None {
             // Turn off the draw flag, it gets set whenever we draw a sprite
             self.should_draw = false;
             // Get and execute the next opcode
             let op: u16 = self.get_op();
             self.execute_op(op);
-
-            // TODO consider alternate ways of implementing this
-            if self.should_decrement_timers {
-                // The delay timer decrements every CPU cycle
-                if self.delay_timer > 0 {
-                    self.delay_timer -= 1;
-                }
-
-                // Each time the sound timer is decremented it triggers a beep
-                if self.sound_timer > 0 {
-                    // TODO make some sound
-                    self.sound_timer -= 1;
-                }
-                self.should_decrement_timers = false;
-            }
         }
         // TODO save state
+    }
+
+    /// Handles delay counter and timers
+    /// - decrements the delay counter
+    /// - decrements timers when the counter hits 0
+    pub fn cycle_timers(&mut self) {
+        if self.delay_counter == 0 {
+            // There are approximately 8 CPU cycles per delay increment
+            self.delay_counter = 8;
+
+            if self.delay_timer > 0 {
+                self.delay_timer -= 1;
+            }
+
+            if self.sound_timer > 0 {
+                // TODO make some sound
+                self.sound_timer -= 1;
+            }
+        } else {
+            self.delay_counter -= 1;
+        }
+
     }
 
     /// Gets the opcode currently pointed at by the pc.
@@ -744,7 +754,7 @@ mod test_chip8 {
         let mut chip8 = Chip8::new();
         chip8.execute_op(0xF10A);
         assert_eq!(chip8.pc, 0x0202);
-        chip8.cycle();
+        chip8.cycle_cpu();
         assert_eq!(chip8.pc, 0x0202);
     }
 
@@ -762,7 +772,7 @@ mod test_chip8 {
         chip8.key_press(0xE);
         // insert a cls opcode so we don't panic at reading from empty memory
         chip8.memory[0x202..0x204].copy_from_slice(&[0x00, 0xE0]);
-        chip8.cycle();
+        chip8.cycle_cpu();
         assert_eq!(chip8.v[0x1], 0xE);
     }
 

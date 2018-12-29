@@ -35,13 +35,8 @@ fn main() {
     // Timing
     // the Chip-8 is generally emulated with a clock rate of 500Hz -> 2ms/cycle
     let cycle_time = Duration::new(0, 2_000_000);
-    // the Chip-8 delay timers decrement at a constant rate of 60Hz -> ~16.7ms/tick
-    let timer_time = Duration::new(0, 16_666_667);
-    // sometimes it's useful to just skip through things
-    let mut fast_forward = false;
-    // set the initial timing for the timer/cycle timers
     let mut last_cycle = Instant::now();
-    let mut last_timer = Instant::now();
+    let mut fast_forward = false;
     'event: loop {
         if chip8.should_draw {
             // Get the state of the Chip-8 FrameBuffer and draw it
@@ -70,17 +65,8 @@ fn main() {
             };
         }
 
-        // TODO rework this, remove repetition and address only decrementing during CPU cycles
-        // Handle timer timing
-        let current_time = Instant::now();
-        let elapsed_timer_time = current_time - last_timer;
-        if elapsed_timer_time > timer_time {
-            chip8.should_decrement_timers = true;
-            last_timer = Instant::now();
-        }
-
-        // Cycle the CPU
-        chip8.cycle();
+        chip8.cycle_cpu();
+        chip8.cycle_timers();
 
         // Handle cycle timing
         let current_time = Instant::now();
@@ -88,6 +74,6 @@ fn main() {
         if !fast_forward && cycle_time > elapsed_cycle_time {
             std::thread::sleep(cycle_time - elapsed_cycle_time);
         }
-        last_cycle = Instant::now();
+        last_cycle = current_time;
     }
 }
