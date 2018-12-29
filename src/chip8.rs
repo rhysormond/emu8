@@ -48,8 +48,8 @@ pub struct Chip8 {
     sound_timer: u8,
     stack: [u16; 16],
     memory: [u8; 4096],
-    pub frame_buffer: FrameBuffer,
-    pub draw_flag: bool,
+    frame_buffer: FrameBuffer,
+    draw_flag: bool,
     pressed_keys: [u8; 16],
     register_needing_key: Option<u8>,
     delay_counter: u8,
@@ -94,6 +94,14 @@ impl Chip8 {
         file.read(&mut self.memory[0x200..]).unwrap();
     }
 
+    /// Returns the FrameBuffer if the display should be redrawn
+    pub fn get_frame(&self) -> Option<FrameBuffer> {
+        match self.draw_flag {
+            true => Some(self.frame_buffer),
+            _ => None,
+        }
+    }
+
     /// Set the pressed status of key
     pub fn key_press(&mut self, key: u8) {
         self.pressed_keys[key as usize] = 0x1;
@@ -110,13 +118,9 @@ impl Chip8 {
 
     /// Executes a single CPU cycle
     /// - breaks if awaiting a keypress
-    /// - unsets the draw flag
-    /// - gets the next opcode and executes it
+    /// - gets and executes the next opcode
     pub fn cycle_cpu(&mut self) {
         if self.register_needing_key == None {
-            // Turn off the draw flag, it gets set whenever we draw a sprite
-            self.draw_flag = false;
-            // Get and execute the next opcode
             let op: u16 = self.get_op();
             self.execute_op(op);
         }

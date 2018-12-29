@@ -3,11 +3,12 @@ A Chip-8 interpreter written in Rust. See [Chip8](src/chip8.rs) for more system 
 
 ![demo gif](docs/demo.gif)
 
-Design aspirations:
- - [ ] Reusable, independent components
+Planned features:
+ - [x] Fully decoupled rendering
  - [ ] Browser support via WebAssembly
- - [ ] Rewindable state
+ - [ ] State loading/saving
  - [x] Fast forward
+ - [ ] Rewind
 
 Specifications are taken from many sources including:
  - [Columbia University's Chip8 Design Specification](http://www.cs.columbia.edu/~sedwards/classes/2016/4840-spring/designs/Chip8.pdf)

@@ -37,9 +37,9 @@ fn main() {
     let mut last_cycle = Instant::now();
     let mut fast_forward = false;
     'event: loop {
-        if chip8.draw_flag {
-            // Get the state of the Chip-8 FrameBuffer and draw it
-            display.render(&chip8.frame_buffer);
+        // If the draw flag is set, unset it and render the current frame
+        if let Some(frame) = chip8.get_frame() {
+            display.render(&frame);
         }
 
         // Check and handle input
