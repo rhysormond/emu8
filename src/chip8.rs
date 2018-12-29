@@ -59,8 +59,8 @@ pub struct Chip8 {
     delay_counter: u8,
 }
 
-const DISPLAY_HEIGHT: usize = 32;
-const DISPLAY_WIDTH: usize = 64;
+pub const DISPLAY_HEIGHT: usize = 32;
+pub const DISPLAY_WIDTH: usize = 64;
 pub type FrameBuffer = [[u8; DISPLAY_HEIGHT]; DISPLAY_WIDTH];
 
 impl Chip8 {

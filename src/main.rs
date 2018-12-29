@@ -19,7 +19,7 @@ fn main() {
     // Initializing State
     let sdl = sdl2::init().unwrap();
     let mut chip8 = chip8::Chip8::new();
-    let mut display = display::Window::new(&sdl, 64, 32, 10);
+    let mut display = display::Display::new(&sdl, 64, 32, 10);
     let mut events = sdl.event_pump().unwrap();
 
     let args = std::env::args();
