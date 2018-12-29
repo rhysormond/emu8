@@ -142,7 +142,6 @@ impl Chip8 {
         } else {
             self.delay_counter -= 1;
         }
-
     }
 
     /// Gets the opcode currently pointed at by the pc.
@@ -308,7 +307,6 @@ impl Chip8 {
                         self.frame_buffer[x as usize][y as usize] ^= pixel_value;
                     }
                 }
-
             }
             (0xE, x, 0x9, 0xE) => {
                 println!("SKP  | if V{:X}.pressed pc += 2", x);
