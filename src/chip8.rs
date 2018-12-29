@@ -21,8 +21,7 @@ use sprites::SPRITE_SHEET;
 ///
 /// Timers
 /// - 2 8-bit timers (delay & sound)
-///     - they decrement sequentially once per tick
-///     - when the sound timer is above 0 it plays a beep
+/// - When the sound timer is decremented it plays a beep
 ///
 /// ## Memory
 /// - 32 byte stack
@@ -31,9 +30,6 @@ use sprites::SPRITE_SHEET;
 /// - 4096 bytes of addressable memory
 /// - 32x64 byte frame buffer
 ///     - stores the contents of the next frame to be drawn
-///
-/// ## Rendering
-/// - New frames aren't rendered every cycle
 ///
 /// ## Input
 /// - 16-bit array to track the pressed status of keys 0..F
@@ -59,9 +55,13 @@ pub struct Chip8 {
     delay_counter: u8,
 }
 
-pub const DISPLAY_HEIGHT: usize = 32;
+/// The Chip-8 runs at 500Hz which is equal to two million nanoseconds per cycle
+pub const CLOCK_SPEED: usize = 2_000_000;
+/// The Chip-8 has a 64x32 pixel display
 pub const DISPLAY_WIDTH: usize = 64;
-pub type FrameBuffer = [[u8; DISPLAY_HEIGHT]; DISPLAY_WIDTH];
+pub const DISPLAY_HEIGHT: usize = 32;
+/// The FrameBuffer is indexed as [y][x]
+pub type FrameBuffer = [[u8; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
 
 impl Chip8 {
     pub fn new() -> Self {
@@ -81,7 +81,7 @@ impl Chip8 {
             sound_timer: 0,
             stack: [0; 16],
             memory,
-            frame_buffer: [[0; 32]; 64],
+            frame_buffer: [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             draw_flag: false,
             pressed_keys: [0; 16],
             register_needing_key: None,
@@ -169,7 +169,7 @@ impl Chip8 {
         match op.nibbles() {
             (0x0, 0x0, 0xE, 0x0) => {
                 println!("CLS  | clear");
-                self.frame_buffer = [[0; 32]; 64];
+                self.frame_buffer = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
                 self.draw_flag = true;
             }
             (0x0, 0x0, 0xE, 0xE) => {
@@ -303,8 +303,8 @@ impl Chip8 {
                     for bit in 0..8 {
                         let x = (self.v[x as usize] as usize + bit) % DISPLAY_WIDTH;
                         let pixel_value = (self.memory[self.i as usize + byte] >> (7 - bit)) & 1;
-                        self.v[0xF] |= pixel_value & self.frame_buffer[x as usize][y as usize];
-                        self.frame_buffer[x as usize][y as usize] ^= pixel_value;
+                        self.v[0xF] |= pixel_value & self.frame_buffer[y as usize][x as usize];
+                        self.frame_buffer[y as usize][x as usize] ^= pixel_value;
                     }
                 }
             }
@@ -656,16 +656,17 @@ mod test_chip8 {
         chip8.v[0x0] = 0x1;
         // Draw the 0x0 sprite with a 1x 1y offset
         chip8.execute_op(0xD005);
-        let mut expected: [[u8; 32]; 64] = [[0; 32]; 64];
-        expected[1][1..6].copy_from_slice(&[1, 1, 1, 1, 1]);
-        expected[2][1..6].copy_from_slice(&[1, 0, 0, 0, 1]);
-        expected[3][1..6].copy_from_slice(&[1, 0, 0, 0, 1]);
-        expected[4][1..6].copy_from_slice(&[1, 1, 1, 1, 1]);
+        let mut expected: FrameBuffer = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
+        expected[1][1..5].copy_from_slice(&[1, 1, 1, 1]);
+        expected[2][1..5].copy_from_slice(&[1, 0, 0, 1]);
+        expected[3][1..5].copy_from_slice(&[1, 0, 0, 1]);
+        expected[4][1..5].copy_from_slice(&[1, 0, 0, 1]);
+        expected[5][1..5].copy_from_slice(&[1, 1, 1, 1]);
         assert!(chip8
             .frame_buffer
             .iter()
             .zip(expected.iter())
-            .all(|(a, b)| a == b));
+            .all(|(a, b)| a[..] == b[..]));
     }
 
     #[test]
@@ -680,10 +681,10 @@ mod test_chip8 {
     fn test_dxyn_drw_xors() {
         let mut chip8 = Chip8::new();
         // 0 1 0 1 -> Set
-        chip8.frame_buffer[0][3..7].copy_from_slice(&[0, 1, 0, 1]);
+        chip8.frame_buffer[0][2..6].copy_from_slice(&[0, 1, 0, 1]);
         // 1 1 0 0 -> Draw xor
         chip8.execute_op(0xD005);
-        assert_eq!(chip8.frame_buffer[0][3..7], [1, 0, 0, 1])
+        assert_eq!(chip8.frame_buffer[0][2..6], [1, 0, 0, 1])
     }
 
     #[test]

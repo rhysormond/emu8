@@ -1,7 +1,6 @@
 extern crate rand;
 extern crate sdl2;
 
-use display::Display;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::fs::File;
@@ -19,7 +18,7 @@ fn main() {
     // Initializing State
     let sdl = sdl2::init().unwrap();
     let mut chip8 = chip8::Chip8::new();
-    let mut display = display::Display::new(&sdl, 64, 32, 10);
+    let mut display = display::Display::new(&sdl, chip8::DISPLAY_WIDTH, chip8::DISPLAY_HEIGHT, 10);
     let mut events = sdl.event_pump().unwrap();
 
     let args = std::env::args();
@@ -34,7 +33,7 @@ fn main() {
 
     // Timing
     // the Chip-8 is generally emulated with a clock rate of 500Hz -> 2ms/cycle
-    let cycle_time = Duration::new(0, 2_000_000);
+    let cycle_time = Duration::new(0, chip8::CLOCK_SPEED as u32);
     let mut last_cycle = Instant::now();
     let mut fast_forward = false;
     'event: loop {
