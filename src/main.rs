@@ -13,14 +13,16 @@ mod keymap;
 mod opcode;
 mod sprites;
 
+// TODO error handling
 fn main() {
-    // TODO error handling
-    // Initializing State
-    let sdl = sdl2::init().unwrap();
     let mut chip8 = chip8::Chip8::new();
+
+    // Get SDL2 context
+    let sdl = sdl2::init().unwrap();
     let mut display = display::Display::new(&sdl, chip8::DISPLAY_WIDTH, chip8::DISPLAY_HEIGHT, 10);
     let mut events = sdl.event_pump().unwrap();
 
+    // Load ROM
     let args = std::env::args();
     if args.len() > 1 {
         let file_path = args.last().expect("unable to get file path from args");
@@ -31,18 +33,19 @@ fn main() {
         panic!("expected ROM file path but got no arguments");
     }
 
-    // Timing
-    // the Chip-8 is generally emulated with a clock rate of 500Hz -> 2ms/cycle
+    // Set initial timing
     let cycle_time = Duration::new(0, chip8::CLOCK_SPEED as u32);
     let mut last_cycle = Instant::now();
     let mut fast_forward = false;
+
+    // TODO handle saving/reloading/rewinding state
     'event: loop {
         // If the draw flag is set, unset it and render the current frame
         if let Some(frame) = chip8.get_frame() {
             display.render(&frame);
         }
 
-        // Check and handle input
+        // Handle input
         for event in events.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'event,
@@ -64,10 +67,11 @@ fn main() {
             };
         }
 
+        // Advance state
         chip8.cycle_cpu();
         chip8.cycle_timers();
 
-        // Handle cycle timing
+        // Handle timing
         let current_time = Instant::now();
         let elapsed_cycle_time = current_time - last_cycle;
         if !fast_forward && cycle_time > elapsed_cycle_time {

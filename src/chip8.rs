@@ -124,7 +124,6 @@ impl Chip8 {
             let op: u16 = self.get_op();
             self.execute_op(op);
         }
-        // TODO save state
     }
 
     /// Handles delay counter and timers
