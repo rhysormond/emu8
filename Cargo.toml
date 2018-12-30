@@ -4,6 +4,5 @@ version = "0.1.0"
 authors = ["rhys <rhysormond@gmail.com>"]
 
 [dependencies]
-clippy = "*"
 rand = "0"
 sdl2 = "0"
