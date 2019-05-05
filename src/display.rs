@@ -1,5 +1,5 @@
-use chip8::FrameBuffer;
 use sdl2::pixels::PixelFormatEnum;
+use state::FrameBuffer;
 
 /// # Display
 ///
@@ -84,7 +84,7 @@ impl Display {
 }
 
 #[cfg(test)]
-mod test_window {
+mod tests {
     use super::*;
 
     #[test]

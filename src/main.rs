@@ -8,10 +8,11 @@ use std::io::BufReader;
 use std::time::{Duration, Instant};
 
 mod chip8;
+mod constants;
 mod display;
 mod keymap;
 mod opcode;
-mod sprites;
+mod state;
 
 // TODO error handling
 fn main() {
@@ -19,7 +20,12 @@ fn main() {
 
     // Get SDL2 context
     let sdl = sdl2::init().unwrap();
-    let mut display = display::Display::new(&sdl, chip8::DISPLAY_WIDTH, chip8::DISPLAY_HEIGHT, 10);
+    let mut display = display::Display::new(
+        &sdl,
+        constants::DISPLAY_WIDTH,
+        constants::DISPLAY_HEIGHT,
+        10,
+    );
     let mut events = sdl.event_pump().unwrap();
 
     // Load ROM
@@ -34,7 +40,7 @@ fn main() {
     }
 
     // Set initial timing
-    let cycle_time = Duration::new(0, chip8::CLOCK_SPEED as u32);
+    let cycle_time = Duration::new(0, constants::CLOCK_SPEED as u32);
     let mut last_cycle = Instant::now();
     let mut fast_forward = false;
 
@@ -74,7 +80,7 @@ fn main() {
 
         // Update state
         if rewind {
-           chip8.reverse_cycle();
+            chip8.reverse_cycle();
         } else {
             chip8.advance_cycle();
             chip8.cycle_timers();

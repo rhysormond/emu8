@@ -1,3 +1,13 @@
+/// The Chip-8 runs at 500Hz which is equal to two million nanoseconds per cycle
+pub const CLOCK_SPEED: usize = 2_000_000;
+
+/// The Chip-8 has a 64x32 pixel display
+pub const DISPLAY_WIDTH: usize = 64;
+pub const DISPLAY_HEIGHT: usize = 32;
+
+/// The maximum number of saved states to store for rewinding
+pub const MAX_SAVED_STATES: usize = 1_000;
+
 /// # Sprite Sheet
 /// Chip-8 has a sprites for hexadecimal characters in memory at 0x000
 pub static SPRITE_SHEET: [u8; 80] = [
