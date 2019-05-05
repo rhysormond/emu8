@@ -1,11 +1,12 @@
 extern crate rand;
 extern crate sdl2;
 
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Duration, Instant};
+
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 
 mod chip8;
 mod constants;

@@ -1,4 +1,4 @@
-use constants::*;
+use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH, SPRITE_SHEET};
 
 /// A snapshot of the Chip8 internal state
 ///

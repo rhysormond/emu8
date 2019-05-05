@@ -1,7 +1,8 @@
-use constants::*;
-use opcode::Opcode;
-use state::*;
 use std::collections::VecDeque;
+
+use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH, MAX_SAVED_STATES};
+use opcode::Opcode;
+use state::{FrameBuffer, State};
 
 /// # Chip-8
 ///

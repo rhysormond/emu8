@@ -1,5 +1,5 @@
-use constants::*;
-use state::*;
+use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use state::{FrameBuffer, State};
 
 /// # Opcodes
 ///

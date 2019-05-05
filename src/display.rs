@@ -1,4 +1,5 @@
 use sdl2::pixels::PixelFormatEnum;
+
 use state::FrameBuffer;
 
 /// # Display
