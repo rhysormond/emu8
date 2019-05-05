@@ -38,6 +38,9 @@ fn main() {
     let mut last_cycle = Instant::now();
     let mut fast_forward = false;
 
+    // Whether the game should be run forwards or in reverse
+    let mut rewind = false;
+
     // TODO handle saving/reloading/rewinding state
     'event: loop {
         // If the draw flag is set, unset it and render the current frame
@@ -54,6 +57,7 @@ fn main() {
                 } => match (key, keymap::keymap(key)) {
                     (_, Some(kc)) => chip8.key_press(kc),
                     (Keycode::Space, _) => fast_forward = true,
+                    (Keycode::Escape, _) => rewind = true,
                     _ => continue,
                 },
                 Event::KeyUp {
@@ -61,15 +65,20 @@ fn main() {
                 } => match (key, keymap::keymap(key)) {
                     (_, Some(kc)) => chip8.key_release(kc),
                     (Keycode::Space, _) => fast_forward = false,
+                    (Keycode::Escape, _) => rewind = false,
                     _ => continue,
                 },
                 _ => continue,
             };
         }
 
-        // Advance state
-        chip8.cycle_cpu();
-        chip8.cycle_timers();
+        // Update state
+        if rewind {
+           chip8.reverse_cycle();
+        } else {
+            chip8.advance_cycle();
+            chip8.cycle_timers();
+        }
 
         // Handle timing
         let current_time = Instant::now();
