@@ -5,7 +5,6 @@ use opcode::Opcode;
 use state::{FrameBuffer, State};
 
 /// # Chip-8
-///
 /// Chip-8 is a virtual machine and corresponding interpreted language.
 /// Tracks current state as well as past states for the purposes of rewinding.
 ///
@@ -125,7 +124,6 @@ impl Chip8 {
         let right = u16::from(self.state.memory[self.state.pc as usize + 1]);
         left << 8 | right
     }
-
 }
 
 #[cfg(test)]

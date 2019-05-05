@@ -11,10 +11,10 @@ The use of two different opcodes to clear (`00E0`) the screen and draw (`Dxyn`) 
 See [the chip8 struct's docstring](src/chip8.rs) for more system details.
 
 # Aspirations
- - [x] decoupled input & rendering
- - [x] full test suite
+ - [x] decoupled input, logic, and rendering
+ - [x] fully tested opcodes
  - [x] fast forward
- - [ ] rewind
+ - [x] rewind
 
 # Running
 ```bash

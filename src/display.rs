@@ -3,7 +3,6 @@ use sdl2::pixels::PixelFormatEnum;
 use state::FrameBuffer;
 
 /// # Display
-///
 /// The Chip-8 display is composed of 64x32 pixels black/white pixels.
 /// The on/off state of these pixels is encoded as 1/0 respectively in a 2d array of 64x32 bits.
 /// The display only gets a call to `render` when the Chip-8 FrameBuffer is updated.
