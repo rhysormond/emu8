@@ -86,10 +86,10 @@ fn main() {
 
         // Update state
         if rewind {
-            chip8.reverse_cycle();
+            chip8.reverse_cpu();
         } else {
-            chip8.advance_cycle();
-            chip8.cycle_timers();
+            chip8.advance_cpu();
+            chip8.advance_timers();
         }
 
         // Handle timing

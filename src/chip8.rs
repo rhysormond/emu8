@@ -1,25 +1,26 @@
 use std::collections::VecDeque;
 use std::io::Error;
 
-use constants::MAX_SAVED_STATES;
+use constants::{CPU_CYCLES_PER_TIMER_CYCLE, MAX_SAVED_STATES};
 use opcode::Opcode;
 use state::{FrameBuffer, State};
 
 /// # Chip-8
 /// Chip-8 is a virtual machine and corresponding interpreted language.
-/// Tracks current state as well as past states for the purposes of rewinding.
 ///
-/// Is interfaced with by the outside world via methods to:
-/// - load roms
-/// - press and release keys
-/// - advance and reverse CPU cycles
-/// - advance its timers
-/// - inspect its frame buffer for rendering by some display
+/// Tracks current (state) as well as (previous_states) for the purposes of rewinding.
+/// Supplies interfaces for:
+/// - loading roms
+/// - pressing and releasing keys
+/// - advancing and reversing the CPU
+/// - advancing its timers
+/// - inspecting its frame buffer for rendering by some display
 pub struct Chip8 {
     state: State,
     previous_states: VecDeque<State>,
 }
 
+// TODO explore time/memory efficiency of more compact representations of past states (e.g. diffs)
 impl Chip8 {
     pub fn new() -> Self {
         Chip8 {
@@ -29,8 +30,11 @@ impl Chip8 {
     }
 
     /// Load a rom from a source file
-    pub fn load_rom(&mut self, file: &mut std::io::Read) -> Result<(), Error> {
-        file.read_exact(&mut self.state.memory[0x200..])
+    ///
+    /// # Arguments
+    /// * `file` a file reader that contains a ROM
+    pub fn load_rom(&mut self, reader: &mut std::io::Read) -> Result<(), Error> {
+        reader.read_exact(&mut self.state.memory[0x200..])
     }
 
     /// Returns the FrameBuffer if the display should be redrawn
@@ -65,7 +69,7 @@ impl Chip8 {
     /// Advances the CPU by a single cycle
     /// - breaks if awaiting a keypress
     /// - gets and executes the next opcode
-    pub fn advance_cycle(&mut self) {
+    pub fn advance_cpu(&mut self) {
         if self.state.register_needing_key == None {
             let op: u16 = self.get_op();
             self.state = op.execute(&self.state);
@@ -74,12 +78,12 @@ impl Chip8 {
     }
 
     /// Reverses the CPU by a single cycle if possible
-    /// - if there are saved states pops the last one and restores it
-    pub fn reverse_cycle(&mut self) {
+    /// - if there are previous_states, pops the last one and restores it
+    pub fn reverse_cpu(&mut self) {
         self.load_state();
     }
 
-    /// Puts the current state in saved_states
+    /// Puts the current state in previous_states
     /// - if there are already MAX_SAVED_STATES saved then the oldest is dropped
     fn save_state(&mut self) {
         if self.previous_states.len() == MAX_SAVED_STATES {
@@ -88,7 +92,7 @@ impl Chip8 {
         self.previous_states.push_front(self.state);
     }
 
-    /// Puts the current state in saved_states
+    /// Puts the current state in previous_states
     /// - if there are already MAX_SAVED_STATES saved then the oldest is dropped
     fn load_state(&mut self) {
         let maybe_old_state: Option<State> = self.previous_states.pop_front();
@@ -100,10 +104,9 @@ impl Chip8 {
     /// Handles delay counter and timers
     /// - decrements the delay counter
     /// - decrements timers when the counter hits 0
-    pub fn cycle_timers(&mut self) {
+    pub fn advance_timers(&mut self) {
         if self.state.delay_counter == 0 {
-            // There are approximately 8 CPU cycles per delay increment
-            self.state.delay_counter = 8;
+            self.state.delay_counter = CPU_CYCLES_PER_TIMER_CYCLE;
 
             if self.state.delay_timer > 0 {
                 self.state.delay_timer -= 1;
@@ -119,7 +122,6 @@ impl Chip8 {
     }
 
     /// Gets the opcode currently pointed at by the pc.
-    ///
     /// Memory is stored as bytes, but opcodes are 16 bits so we combine two subsequent bytes.
     fn get_op(&self) -> u16 {
         let left = u16::from(self.state.memory[self.state.pc as usize]);
@@ -145,7 +147,7 @@ mod tests {
         let starting_pc = chip8.state.pc;
         // insert a cls opcode so we don't panic at reading from empty memory
         chip8.state.memory[0x200..0x202].copy_from_slice(&[0x00, 0xE0]);
-        chip8.advance_cycle();
+        chip8.advance_cpu();
         assert_eq!(chip8.state.pc, starting_pc + 0x2);
     }
 
@@ -163,7 +165,7 @@ mod tests {
         let mut chip8 = Chip8::new();
         let starting_pc = chip8.state.pc;
         chip8.state.register_needing_key = Some(0x1);
-        chip8.advance_cycle();
+        chip8.advance_cpu();
         assert_eq!(chip8.state.pc, starting_pc);
     }
 

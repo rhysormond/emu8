@@ -1,6 +1,10 @@
 /// The Chip-8 runs at 500Hz which is equal to two million nanoseconds per cycle
 pub const CLOCK_SPEED: usize = 2_000_000;
 
+// How often timers should be decremented relative to CPU cycles
+// 500Hz / 60Hz ~= 8
+pub const CPU_CYCLES_PER_TIMER_CYCLE: u8 = 8;
+
 /// The Chip-8 has a 64x32 pixel display
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
@@ -8,7 +12,6 @@ pub const DISPLAY_HEIGHT: usize = 32;
 /// The maximum number of states to be saved in the rewind buffer
 pub const MAX_SAVED_STATES: usize = 1_000;
 
-/// # Sprite Sheet
 /// Chip-8 has a sprites for hexadecimal characters in memory starting at 0x000
 pub static SPRITE_SHEET: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0

@@ -2,6 +2,7 @@ use sdl2::keyboard::Keycode;
 
 /// # Keymap
 /// Chip-8 input is generated with a hexadecimal keypad.
+///
 /// This original layout is mapped to the left 4 alphanumeric columns.
 /// ```
 /// |1|2|3|C|      |1|2|3|4|

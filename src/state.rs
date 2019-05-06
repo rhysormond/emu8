@@ -1,5 +1,6 @@
 use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH, SPRITE_SHEET};
 
+/// # State
 /// A snapshot of the Chip8 internal state
 ///
 /// ## CPU
@@ -16,25 +17,24 @@ use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH, SPRITE_SHEET};
 /// - (sp) a 8-bit stack pointer
 ///
 /// Timers
-/// - 2 8-bit timers (delay & sound)
-/// - When the sound timer is decremented it plays a beep
+/// - (delay_timer & sound_timer) 8-bit timers that decrement at 60Hz
+///     - each time the sound timer is decremented a beep sound is generated
+/// - (delay_counter) how many more CPU cycles should pass before the timers are decremented
+///     - the CPU has a clock speed of 500Hz so the timers are decremented once every 8 CPU cycles
 ///
 /// ## Memory
-/// - 32 byte stack
+/// - (stack) a 32 byte stack
 ///     - stores return addresses when subroutines are called
-///     - conflicting sources cite the size as being anywhere from 32-64 bytes
-/// - 4096 bytes of addressable memory
-/// - 32x64 byte frame buffer
-///     - stores the contents of the next frame to be drawn
+///     - different sources cite the as being anywhere from 32-64 bytes
+/// - (memory) 4096 bytes of addressable memory
+/// - (frame_buffer) 32x64 bytes of vram
 ///
 /// ## Input
-/// - 16-bit array to track the pressed status of keys 0..F
-/// - Emulation may halt until a key's value is written to Some register
+/// - (pressed_keys) what keys are currently pressed
+/// - (register_needing_key) whether we're awaiting a keypress so it can be stored in the register
 ///
-/// ## Timing
-/// - The CPU should have a clock speed of 500Hz
-/// - The timers should be decremented at 60Hz
-///     - this is approximated as once every 8 CPU cycles
+/// ## Other
+/// - (draw_flag) tracks frame buffer updates since the last draw to prevent unnecessary redraws
 #[derive(Copy, Clone)]
 pub struct State {
     pub v: [u8; 16],
@@ -79,5 +79,10 @@ impl State {
     }
 }
 
-/// The FrameBuffer is indexed as [y][x]
+/// # Frame Buffer
+/// Represents the contents of the Chip-8 vram indexed as [y][x].
+///
+/// Used for:
+/// - storing a frame to be drawn to the display
+/// - comparisons against the currently drawn sprites for detecting collisions
 pub type FrameBuffer = [[u8; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
