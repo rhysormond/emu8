@@ -17,11 +17,11 @@ mod state;
 
 // TODO error handling
 fn main() {
-    let mut chip8 = chip8::Chip8::new();
+    let mut chip8: chip8::Chip8 = chip8::Chip8::new();
 
     // Get SDL2 context
-    let sdl = sdl2::init().unwrap();
-    let mut display = display::Display::new(
+    let sdl: sdl2::Sdl = sdl2::init().unwrap();
+    let mut display: display::Display = display::Display::new(
         &sdl,
         constants::DISPLAY_WIDTH,
         constants::DISPLAY_HEIGHT,
@@ -41,14 +41,14 @@ fn main() {
     }
 
     // Set initial timing
-    let cycle_time = Duration::new(0, constants::CLOCK_SPEED as u32);
-    let mut last_cycle = Instant::now();
-    let mut fast_forward = false;
+    let cycle_time: Duration = Duration::new(0, constants::CLOCK_SPEED as u32);
+    let mut last_cycle: Instant = Instant::now();
 
-    // Whether the game should be run forwards or in reverse
-    let mut rewind = false;
+    // Whether or not the default clock speed should be respected
+    let mut fast_forward: bool = false;
+    // Whether the game's state should be cycled forwards or backwards
+    let mut rewind: bool = false;
 
-    // TODO handle saving/reloading/rewinding state
     'event: loop {
         // If the draw flag is set, unset it and render the current frame
         if let Some(frame) = chip8.get_frame() {

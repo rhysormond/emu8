@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH, MAX_SAVED_STATES};
+use constants::MAX_SAVED_STATES;
 use opcode::Opcode;
 use state::{FrameBuffer, State};
 
@@ -34,9 +34,10 @@ impl Chip8 {
 
     /// Returns the FrameBuffer if the display should be redrawn
     pub fn get_frame(&self) -> Option<FrameBuffer> {
-        match self.state.draw_flag {
-            true => Some(self.state.frame_buffer),
-            _ => None,
+        if self.state.draw_flag {
+            Some(self.state.frame_buffer)
+        } else {
+            None
         }
     }
 
@@ -89,10 +90,10 @@ impl Chip8 {
     /// Puts the current state in saved_states
     /// - if there are already MAX_SAVED_STATES saved then the oldest is dropped
     fn load_state(&mut self) {
-        // TODO this should be foreach or something similar since it has a unit return
-        self.previous_states
-            .pop_front()
-            .map(|state| self.state = state);
+        let maybe_old_state: Option<State> = self.previous_states.pop_front();
+        if let Some(state) = maybe_old_state {
+            self.state = state
+        }
     }
 
     /// Handles delay counter and timers

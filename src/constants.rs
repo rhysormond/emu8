@@ -5,11 +5,11 @@ pub const CLOCK_SPEED: usize = 2_000_000;
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 
-/// The maximum number of saved states to store for rewinding
+/// The maximum number of states to be saved in the rewind buffer
 pub const MAX_SAVED_STATES: usize = 1_000;
 
 /// # Sprite Sheet
-/// Chip-8 has a sprites for hexadecimal characters in memory at 0x000
+/// Chip-8 has a sprites for hexadecimal characters in memory starting at 0x000
 pub static SPRITE_SHEET: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1

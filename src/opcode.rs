@@ -1,5 +1,5 @@
 use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
-use state::{FrameBuffer, State};
+use state::State;
 
 /// # Opcodes
 ///
@@ -49,17 +49,16 @@ impl Opcode for u16 {
         (self & 0x00FF) as u8
     }
 
-    /// Execute a single opcode
-    ///
-    /// Matches the opcode's nibbles against a table and use them to conditionally edit the state.
-    /// Returns a copy of the state after it's transformed by the opcode execution.
+    /// Execute a single opcode by matching it against the opcode table and updating the game state.
+    /// - matches the opcode's nibbles against an opcode table
+    /// - executes the instruction encoded in the opcode
+    /// - returns an updated copy of the Chip-8 internal state
     ///
     /// # Arguments
     /// * `op` a 16-bit opcode
     /// * `state` a reference to the Chip-8's internal state
     fn execute(&self, state: &State) -> State {
         let mut state: State = State::clone(state);
-        // TODO refactor this to eliminate some repetition
         // TODO use a logger instead of print statements
         print!("{:04X} ", self);
 
@@ -181,7 +180,7 @@ impl Opcode for u16 {
             (0xB, ..) => {
                 let addr = self.addr();
                 println!("JP   | PC = V0 + {:04X}", addr);
-                state.pc = state.v[0x0] as u16 + addr;
+                state.pc = u16::from(state.v[0x0]) + addr;
                 pc_bump = 0x0;
             }
             (0xC, x, ..) => {
@@ -237,13 +236,13 @@ impl Opcode for u16 {
             }
             (0xF, x, 0x1, 0xE) => {
                 println!("ADD  | I += V{:X}", x);
-                state.i += state.v[x as usize] as u16;
+                state.i += u16::from(state.v[x as usize]);
             }
             (0xF, x, 0x2, 0x9) => {
                 // Set I to the memory address of the sprite for Vx
                 // See sprites::SPRITE_SHEET for more details
                 println!("LD   | I = V{:X} * 5", x);
-                state.i = state.v[x as usize] as u16 * 5;
+                state.i = u16::from(state.v[x as usize]) * 5;
             }
             (0xF, x, 0x3, 0x3) => {
                 // Store BCD repr of Vx in memory starting at address i
@@ -258,14 +257,14 @@ impl Opcode for u16 {
             (0xF, x, 0x5, 0x5) => {
                 // Fill memory starting at address i with V0..Vx+1
                 println!("LD   | mem[I..I+{:X}] = V0..V{:X}", x, x);
-                state.memory[state.i as usize..(state.i + 1 + x as u16) as usize]
-                    .copy_from_slice(&state.v[0x0 as usize..1 + x as usize]);
+                state.memory[state.i as usize..=(state.i + u16::from(x)) as usize]
+                    .copy_from_slice(&state.v[0x0 as usize..=x as usize]);
             }
             (0xF, x, 0x6, 0x5) => {
                 // Fill V0..Vx+1 with memory starting at address i
                 println!("LD   | V0..V{:X} = mem[I..I+{:X}]", x, x);
-                state.v[0x0 as usize..1 + x as usize].copy_from_slice(
-                    &state.memory[state.i as usize..(state.i + 1 + x as u16) as usize],
+                state.v[0x0 as usize..=x as usize].copy_from_slice(
+                    &state.memory[state.i as usize..=(state.i + u16::from(x)) as usize],
                 );
             }
             other => panic!("Opcode {:?} is not implemented", other),
@@ -572,7 +571,7 @@ mod test_execute {
         state.v[0x0] = 0x1;
         // Draw the 0x0 sprite with a 1x 1y offset
         let state = 0xD005.execute(&state);
-        let mut expected: FrameBuffer = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
+        let mut expected = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
         expected[1][1..5].copy_from_slice(&[1, 1, 1, 1]);
         expected[2][1..5].copy_from_slice(&[1, 0, 0, 1]);
         expected[3][1..5].copy_from_slice(&[1, 0, 0, 1]);

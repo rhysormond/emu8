@@ -7,7 +7,7 @@ use state::FrameBuffer;
 /// The on/off state of these pixels is encoded as 1/0 respectively in a 2d array of 64x32 bits.
 /// The display only gets a call to `render` when the Chip-8 FrameBuffer is updated.
 pub struct Display {
-    pub canvas: sdl2::render::WindowCanvas,
+    canvas: sdl2::render::WindowCanvas,
     width: usize,
     height: usize,
 }
