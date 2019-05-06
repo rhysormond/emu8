@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::io::Error;
 
 use constants::MAX_SAVED_STATES;
 use opcode::Opcode;
@@ -28,8 +29,8 @@ impl Chip8 {
     }
 
     /// Load a rom from a source file
-    pub fn load_rom(&mut self, file: &mut std::io::Read) {
-        file.read(&mut self.state.memory[0x200..]).unwrap();
+    pub fn load_rom(&mut self, file: &mut std::io::Read) -> Result<(), Error> {
+        file.read_exact(&mut self.state.memory[0x200..])
     }
 
     /// Returns the FrameBuffer if the display should be redrawn

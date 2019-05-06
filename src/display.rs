@@ -12,6 +12,7 @@ pub struct Display {
     height: usize,
 }
 
+// TODO handle errors better
 impl Display {
     /// Creates a new display object bound to an sdl2 context.
     ///

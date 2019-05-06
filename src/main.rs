@@ -15,7 +15,6 @@ mod keymap;
 mod opcode;
 mod state;
 
-// TODO error handling
 fn main() {
     let mut chip8: chip8::Chip8 = chip8::Chip8::new();
 
@@ -35,7 +34,13 @@ fn main() {
         let file_path = args.last().expect("unable to get file path from args");
         let file = File::open(file_path).expect("unable to open file");
         let mut reader = BufReader::new(file);
-        chip8.load_rom(&mut reader);
+        match chip8.load_rom(&mut reader) {
+            Ok(()) => println!("successfully loaded ROM"),
+            Err(e) => println!(
+                "encountered error {:?} while attempting to load ROM but continuing execution",
+                e
+            ),
+        };
     } else {
         panic!("expected ROM file path but got no arguments");
     }
