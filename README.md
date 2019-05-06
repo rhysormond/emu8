@@ -29,3 +29,4 @@ Dmatlack has a [repository of games](https://github.com/dmatlack/chip8/tree/mast
  - [Columbia University's Chip8 Design Specification](http://www.cs.columbia.edu/~sedwards/classes/2016/4840-spring/designs/Chip8.pdf)
  - [Cowgod's Chip-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
  - [Mastering Chip-8](http://mattmik.com/files/chip8/mastering/chip8.html)
+ - [Craig Thomas's Chip8 Assembler](https://github.com/craigthomas/Chip8Assembler) for opcode mnemonics

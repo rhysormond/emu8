@@ -66,18 +66,18 @@ impl Opcode for u16 {
         let mut pc_bump: u16 = 0x2;
         match self.nibbles() {
             (0x0, 0x0, 0xE, 0x0) => {
-                println!("CLS  | clear");
+                println!("CLR  | clear");
                 state.frame_buffer = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
                 state.draw_flag = true;
             }
             (0x0, 0x0, 0xE, 0xE) => {
-                println!("RET  | PC = STACK.pop()");
+                println!("RTS  | PC = STACK.pop()");
                 state.pc = state.stack[state.sp as usize];
                 state.sp -= 0x1;
             }
             (0x1, ..) => {
                 let addr = self.addr();
-                println!("JP   | PC = {:04X}", addr);
+                println!("JUMP | PC = {:04X}", addr);
                 state.pc = addr;
                 pc_bump = 0x0;
             }
@@ -91,38 +91,38 @@ impl Opcode for u16 {
             }
             (0x3, x, ..) => {
                 let kk = self.byte();
-                println!("SE   | if V{:X} == {:X} pc += 2", x, kk);
+                println!("SKE  | if V{:X} == {:X} pc += 2", x, kk);
                 if state.v[x as usize] == kk {
                     state.pc += 0x2;
                 };
             }
             (0x4, x, ..) => {
                 let kk = self.byte();
-                println!("SNE  | if V{:X} != {:X} pc += 2", x, kk);
+                println!("SKNE | if V{:X} != {:X} pc += 2", x, kk);
                 if state.v[x as usize] != kk {
                     state.pc += 0x2;
                 };
             }
             (0x5, x, y, 0x0) => {
-                println!("SE   | if V{:X} == V{:X} pc += 2", x, y);
+                println!("SKRE | if V{:X} == V{:X} pc += 2", x, y);
                 if state.v[x as usize] == state.v[y as usize] {
                     state.pc += 0x2;
                 };
             }
             (0x6, x, ..) => {
                 let kk = self.byte();
-                println!("LD   | V{:X} = {:X}", x, kk);
+                println!("LOAD | V{:X} = {:X}", x, kk);
                 state.v[x as usize] = kk;
             }
             (0x7, x, ..) => {
                 let kk = self.byte();
                 // Add kk to Vx, allow for overflow but implicitly drop it
-                println!("Add  | V{:X} += {:X}", x, kk);
+                println!("ADD  | V{:X} += {:X}", x, kk);
                 let (res, _) = state.v[x as usize].overflowing_add(kk);
                 state.v[x as usize] = res;
             }
             (0x8, x, y, 0x0) => {
-                println!("LD   | V{:X} = V{:X}", x, y);
+                println!("MOVE | V{:X} = V{:X}", x, y);
                 state.v[x as usize] = state.v[y as usize];
             }
             (0x8, x, y, 0x1) => {
@@ -138,7 +138,7 @@ impl Opcode for u16 {
                 state.v[x as usize] ^= state.v[y as usize];
             }
             (0x8, x, y, 0x4) => {
-                println!("ADD  | V{:X} += V{:X}; VF = overflow", x, y);
+                println!("ADDR | V{:X} += V{:X}; VF = overflow", x, y);
                 let (res, over) = state.v[x as usize].overflowing_add(state.v[y as usize]);
                 state.v[0xF] = if over { 0x1 } else { 0x0 };
                 state.v[x as usize] = res;
@@ -167,30 +167,30 @@ impl Opcode for u16 {
                 state.v[x as usize] = res;
             }
             (0x9, x, y, 0x0) => {
-                println!("SNE  | if V{:X} != V{:X} pc +=2", x, y);
+                println!("SKRNE| if V{:X} != V{:X} pc +=2", x, y);
                 if state.v[x as usize] != state.v[y as usize] {
                     state.pc += 0x2
                 };
             }
             (0xA, ..) => {
                 let addr = self.addr();
-                println!("LD   | I = {:04X}", addr);
+                println!("LOADI| I = {:04X}", addr);
                 state.i = addr;
             }
             (0xB, ..) => {
                 let addr = self.addr();
-                println!("JP   | PC = V0 + {:04X}", addr);
+                println!("JUMPI| PC = V0 + {:04X}", addr);
                 state.pc = u16::from(state.v[0x0]) + addr;
                 pc_bump = 0x0;
             }
             (0xC, x, ..) => {
                 let kk = self.byte();
-                println!("RND  | V{:X} = rand_byte + {:X}", x, kk);
+                println!("RAND | V{:X} = rand_byte + {:X}", x, kk);
                 let rand_byte: u8 = rand::random();
                 state.v[x as usize] = rand_byte & kk;
             }
             (0xD, x, y, n) => {
-                println!("DRW  | draw_sprite(x=V{:X} y=V{:X} size={:X})", x, y, n);
+                println!("DRAW | draw_sprite(x=V{:X} y=V{:X} size={:X})", x, y, n);
                 // XORs a sprite from memory i..n at position x, y on the FrameBuffer with wrapping.
                 // Sets VF if any pixels would be erased
                 state.draw_flag = true;
@@ -207,27 +207,27 @@ impl Opcode for u16 {
                 }
             }
             (0xE, x, 0x9, 0xE) => {
-                println!("SKP  | if V{:X}.pressed pc += 2", x);
+                println!("SKPR | if V{:X}.pressed pc += 2", x);
                 if state.pressed_keys[state.v[x as usize] as usize] == 0x1 {
                     state.pc += 0x2;
                 };
             }
             (0xE, x, 0xA, 0x1) => {
-                println!("SKNP | if !V{:X}.pressed pc += 2", x);
+                println!("SKUP | if !V{:X}.pressed pc += 2", x);
                 if state.pressed_keys[state.v[x as usize] as usize] == 0x0 {
                     state.pc += 0x2;
                 };
             }
             (0xF, x, 0x0, 0x7) => {
-                println!("LD   | V{:X} = DT", x);
+                println!("MOVED| V{:X} = DT", x);
                 state.v[x as usize] = state.delay_timer;
             }
             (0xF, x, 0x0, 0xA) => {
-                println!("LD   | await keypress for V{:X}", x);
+                println!("KEYD | await keypress for V{:X}", x);
                 state.register_needing_key = Some(x)
             }
             (0xF, x, 0x1, 0x5) => {
-                println!("LD   | DT = V{:X}", x);
+                println!("LOADS| DT = V{:X}", x);
                 state.delay_timer = state.v[x as usize];
             }
             (0xF, x, 0x1, 0x8) => {
@@ -235,18 +235,18 @@ impl Opcode for u16 {
                 state.sound_timer = state.v[x as usize];
             }
             (0xF, x, 0x1, 0xE) => {
-                println!("ADD  | I += V{:X}", x);
+                println!("ADDI | I += V{:X}", x);
                 state.i += u16::from(state.v[x as usize]);
             }
             (0xF, x, 0x2, 0x9) => {
                 // Set I to the memory address of the sprite for Vx
                 // See sprites::SPRITE_SHEET for more details
-                println!("LD   | I = V{:X} * 5", x);
+                println!("LDSPR| I = V{:X} * 5", x);
                 state.i = u16::from(state.v[x as usize]) * 5;
             }
             (0xF, x, 0x3, 0x3) => {
                 // Store BCD repr of Vx in memory starting at address i
-                println!("LD   | mem[I..I+3] = bcd(V{:X})", x);
+                println!("BCD  | mem[I..I+3] = bcd(V{:X})", x);
                 let bcd = [
                     (state.v[x as usize] / 100 % 10),
                     (state.v[x as usize] / 10 % 10),
@@ -256,13 +256,13 @@ impl Opcode for u16 {
             }
             (0xF, x, 0x5, 0x5) => {
                 // Fill memory starting at address i with V0..Vx+1
-                println!("LD   | mem[I..I+{:X}] = V0..V{:X}", x, x);
+                println!("STOR | mem[I..I+{:X}] = V0..V{:X}", x, x);
                 state.memory[state.i as usize..=(state.i + u16::from(x)) as usize]
                     .copy_from_slice(&state.v[0x0 as usize..=x as usize]);
             }
             (0xF, x, 0x6, 0x5) => {
                 // Fill V0..Vx+1 with memory starting at address i
-                println!("LD   | V0..V{:X} = mem[I..I+{:X}]", x, x);
+                println!("READ | V0..V{:X} = mem[I..I+{:X}]", x, x);
                 state.v[0x0 as usize..=x as usize].copy_from_slice(
                     &state.memory[state.i as usize..=(state.i + u16::from(x)) as usize],
                 );
