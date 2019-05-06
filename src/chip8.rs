@@ -188,6 +188,7 @@ mod tests {
         assert_eq!(chip8.previous_states[0].pressed_keys[0], 0);
     }
 
+    // TODO this test is unnecessarily slow because we can't parameterize MAX_SAVED_STATES
     #[test]
     fn test_chip8_drops_old_saved_states() {
         let mut chip8 = Chip8::new();
