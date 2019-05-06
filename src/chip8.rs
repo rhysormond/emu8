@@ -89,7 +89,11 @@ impl Chip8 {
         if self.previous_states.len() == MAX_SAVED_STATES {
             self.previous_states.pop_back();
         }
-        self.previous_states.push_front(self.state);
+        // TODO reevaluate whether we actually need to save pressed_keys in the state
+        let mut state = self.state;
+        // wipe pressed_keys before saving
+        state.pressed_keys  = [0; 16];
+        self.previous_states.push_front(state);
     }
 
     /// Puts the current state in previous_states
@@ -174,6 +178,14 @@ mod tests {
         let mut chip8 = Chip8::new();
         chip8.save_state();
         assert_eq!(chip8.previous_states.len(), 1);
+    }
+
+    #[test]
+    fn test_chip8_clears_pressed_keys_when_saving_state() {
+        let mut chip8 = Chip8::new();
+        chip8.state.pressed_keys[0] = 0x1;
+        chip8.save_state();
+        assert_eq!(chip8.previous_states[0].pressed_keys[0], 0);
     }
 
     #[test]
