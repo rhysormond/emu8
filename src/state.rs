@@ -30,7 +30,6 @@ use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH, SPRITE_SHEET};
 /// - (frame_buffer) 32x64 bytes of vram
 ///
 /// ## Input
-/// - (pressed_keys) what keys are currently pressed
 /// - (register_needing_key) whether we're awaiting a keypress so it can be stored in the register
 ///
 /// ## Other
@@ -47,7 +46,6 @@ pub struct State {
     pub memory: [u8; 4096],
     pub frame_buffer: FrameBuffer,
     pub draw_flag: bool,
-    pub pressed_keys: [u8; 16],
     pub register_needing_key: Option<u8>,
     pub delay_counter: u8,
 }
@@ -72,7 +70,6 @@ impl State {
             memory,
             frame_buffer: [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             draw_flag: false,
-            pressed_keys: [0; 16],
             register_needing_key: None,
             delay_counter: 0,
         }

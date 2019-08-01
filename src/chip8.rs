@@ -8,7 +8,11 @@ use state::{FrameBuffer, State};
 /// # Chip-8
 /// Chip-8 is a virtual machine and corresponding interpreted language.
 ///
-/// Tracks current (state) as well as (previous_states) for the purposes of rewinding.
+/// Tracks:
+///  - current `state`
+///  - `previous_states` for rewinding
+///  - `pressed_keys` with public interfaces for manipulating them
+///
 /// Supplies interfaces for:
 /// - loading roms
 /// - pressing and releasing keys
@@ -18,6 +22,7 @@ use state::{FrameBuffer, State};
 pub struct Chip8 {
     state: State,
     previous_states: VecDeque<State>,
+    pressed_keys: [u8; 16],
 }
 
 // TODO explore time/memory efficiency of more compact representations of past states (e.g. diffs)
@@ -26,6 +31,7 @@ impl Chip8 {
         Chip8 {
             state: State::new(),
             previous_states: VecDeque::with_capacity(MAX_SAVED_STATES),
+            pressed_keys: [0; 16],
         }
     }
 
@@ -51,7 +57,7 @@ impl Chip8 {
     /// # Arguments
     /// * `key` the 8-bit representation of the key that was pressed
     pub fn key_press(&mut self, key: u8) {
-        self.state.pressed_keys[key as usize] = 0x1;
+        self.pressed_keys[key as usize] = 0x1;
         if let Some(register) = self.state.register_needing_key {
             self.state.v[register as usize] = key;
             self.state.register_needing_key = None;
@@ -63,7 +69,7 @@ impl Chip8 {
     /// # Arguments
     /// * `key` the 8-bit representation of the key that was released
     pub fn key_release(&mut self, key: u8) {
-        self.state.pressed_keys[key as usize] = 0x0;
+        self.pressed_keys[key as usize] = 0x0;
     }
 
     /// Advances the CPU by a single cycle
@@ -72,7 +78,7 @@ impl Chip8 {
     pub fn advance_cpu(&mut self) {
         if self.state.register_needing_key == None {
             let op: u16 = self.get_op();
-            self.state = op.execute(&self.state);
+            self.state = op.execute(&self.state, self.pressed_keys);
         };
         self.save_state();
     }
@@ -89,11 +95,7 @@ impl Chip8 {
         if self.previous_states.len() == MAX_SAVED_STATES {
             self.previous_states.pop_back();
         }
-        // TODO reevaluate whether we actually need to save pressed_keys in the state
-        let mut state = self.state;
-        // wipe pressed_keys before saving
-        state.pressed_keys  = [0; 16];
-        self.previous_states.push_front(state);
+        self.previous_states.push_front(self.state);
     }
 
     /// Puts the current state in previous_states
@@ -178,14 +180,6 @@ mod tests {
         let mut chip8 = Chip8::new();
         chip8.save_state();
         assert_eq!(chip8.previous_states.len(), 1);
-    }
-
-    #[test]
-    fn test_chip8_clears_pressed_keys_when_saving_state() {
-        let mut chip8 = Chip8::new();
-        chip8.state.pressed_keys[0] = 0x1;
-        chip8.save_state();
-        assert_eq!(chip8.previous_states[0].pressed_keys[0], 0);
     }
 
     // TODO this test is unnecessarily slow because we can't parameterize MAX_SAVED_STATES

@@ -27,8 +27,8 @@ where
     /// Returns the Opcode's least significant byte.
     fn byte(&self) -> u8;
 
-    /// Executes an opcode on a given state and returns an updated copy of it
-    fn execute(&self, state: &State) -> State;
+    /// Executes an opcode for a given state and set of pressed keys and returns a new state
+    fn execute(&self, state: &State, pressed_keys: [u8; 16]) -> State;
 }
 
 impl Opcode for u16 {
@@ -57,7 +57,7 @@ impl Opcode for u16 {
     /// # Arguments
     /// * `op` a 16-bit opcode
     /// * `state` a reference to the Chip-8's internal state
-    fn execute(&self, state: &State) -> State {
+    fn execute(&self, state: &State, pressed_keys: [u8; 16]) -> State {
         let mut state: State = State::clone(state);
         // TODO use a logger instead of print statements
         print!("{:04X} ", self);
@@ -200,7 +200,8 @@ impl Opcode for u16 {
                     let y = (state.v[y as usize] as usize + byte) % DISPLAY_HEIGHT;
                     for bit in 0..8 {
                         let x = (state.v[x as usize] as usize + bit) % DISPLAY_WIDTH;
-                        let pixel_value = (state.memory[state.i as usize + byte] >> (7 - bit)) & 1;
+                        let pixel_value =
+                            (state.memory[state.i as usize + byte] >> (7 - bit) as u8) & 1;
                         state.v[0xF] |= pixel_value & state.frame_buffer[y as usize][x as usize];
                         state.frame_buffer[y as usize][x as usize] ^= pixel_value;
                     }
@@ -208,13 +209,13 @@ impl Opcode for u16 {
             }
             (0xE, x, 0x9, 0xE) => {
                 println!("SKPR | if V{:X}.pressed pc += 2", x);
-                if state.pressed_keys[state.v[x as usize] as usize] == 0x1 {
+                if pressed_keys[state.v[x as usize] as usize] == 0x1 {
                     state.pc += 0x2;
                 };
             }
             (0xE, x, 0xA, 0x1) => {
                 println!("SKUP | if !V{:X}.pressed pc += 2", x);
-                if state.pressed_keys[state.v[x as usize] as usize] == 0x0 {
+                if pressed_keys[state.v[x as usize] as usize] == 0x0 {
                     state.pc += 0x2;
                 };
             }
@@ -305,7 +306,7 @@ mod test_execute {
     fn test_00e0_cls() {
         let mut state = State::new();
         state.frame_buffer[0][0] = 1;
-        let state = 0x00E0.execute(&state);
+        let state = 0x00E0.execute(&state, [0; 16]);
         assert_eq!(state.frame_buffer[0][0], 0);
     }
 
@@ -314,7 +315,7 @@ mod test_execute {
         let mut state = State::new();
         state.sp = 0x1;
         state.stack[state.sp as usize] = 0xABCD;
-        let state = 0x00EE.execute(&state);
+        let state = 0x00EE.execute(&state, [0; 16]);
         assert_eq!(state.sp, 0x0);
         // Add 2 to the program as it's bumped after opcode execution
         assert_eq!(state.pc, 0xABCD + 0x2);
@@ -323,7 +324,7 @@ mod test_execute {
     #[test]
     fn test_1nnn_jp() {
         let state = State::new();
-        let state = 0x1ABC.execute(&state);
+        let state = 0x1ABC.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0ABC);
     }
 
@@ -331,7 +332,7 @@ mod test_execute {
     fn test_2nnn_call() {
         let mut state = State::new();
         state.pc = 0xABCD;
-        let state = 0x2123.execute(&state);
+        let state = 0x2123.execute(&state, [0; 16]);
         assert_eq!(state.sp, 0x1);
         assert_eq!(state.stack[state.sp as usize], 0xABCD);
         assert_eq!(state.pc, 0x0123);
@@ -341,21 +342,21 @@ mod test_execute {
     fn test_3xkk_se_skips() {
         let mut state = State::new();
         state.v[0x1] = 0x11;
-        let state = 0x3111.execute(&state);
+        let state = 0x3111.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0204);
     }
 
     #[test]
     fn test_3xkk_se_doesntskip() {
         let state = State::new();
-        let state = 0x3111.execute(&state);
+        let state = 0x3111.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0202);
     }
 
     #[test]
     fn test_4xkk_sne_skips() {
         let state = State::new();
-        let state = 0x4111.execute(&state);
+        let state = 0x4111.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0204);
     }
 
@@ -363,7 +364,7 @@ mod test_execute {
     fn test_3xkk_sne_doesntskip() {
         let mut state = State::new();
         state.v[0x1] = 0x11;
-        let state = 0x4111.execute(&state);
+        let state = 0x4111.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0202);
     }
 
@@ -372,7 +373,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x11;
         state.v[0x2] = 0x11;
-        let state = 0x5120.execute(&state);
+        let state = 0x5120.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0204);
     }
 
@@ -380,14 +381,14 @@ mod test_execute {
     fn test_5xy0_se_doesntskip() {
         let mut state = State::new();
         state.v[0x1] = 0x11;
-        let state = 0x5120.execute(&state);
+        let state = 0x5120.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0202);
     }
 
     #[test]
     fn test_6xkk_ld() {
         let state = State::new();
-        let state = 0x6122.execute(&state);
+        let state = 0x6122.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x22);
     }
 
@@ -395,7 +396,7 @@ mod test_execute {
     fn test_7xkk_add() {
         let mut state = State::new();
         state.v[0x1] = 0x1;
-        let state = 0x7122.execute(&state);
+        let state = 0x7122.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x23);
     }
 
@@ -403,7 +404,7 @@ mod test_execute {
     fn test_8xy0_ld() {
         let mut state = State::new();
         state.v[0x2] = 0x1;
-        let state = 0x8120.execute(&state);
+        let state = 0x8120.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x1);
     }
 
@@ -412,7 +413,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x6;
         state.v[0x2] = 0x3;
-        let state = 0x8121.execute(&state);
+        let state = 0x8121.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x7);
     }
 
@@ -421,7 +422,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x6;
         state.v[0x2] = 0x3;
-        let state = 0x8122.execute(&state);
+        let state = 0x8122.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x2);
     }
 
@@ -430,7 +431,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x6;
         state.v[0x2] = 0x3;
-        let state = 0x8123.execute(&state);
+        let state = 0x8123.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x5);
     }
 
@@ -439,7 +440,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0xEE;
         state.v[0x2] = 0x11;
-        let state = 0x8124.execute(&state);
+        let state = 0x8124.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0xFF);
         assert_eq!(state.v[0xF], 0x0);
     }
@@ -449,7 +450,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0xFF;
         state.v[0x2] = 0x11;
-        let state = 0x8124.execute(&state);
+        let state = 0x8124.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x10);
         assert_eq!(state.v[0xF], 0x1);
     }
@@ -459,7 +460,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x33;
         state.v[0x2] = 0x11;
-        let state = 0x8125.execute(&state);
+        let state = 0x8125.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x22);
         assert_eq!(state.v[0xF], 0x1);
     }
@@ -469,7 +470,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x11;
         state.v[0x2] = 0x12;
-        let state = 0x8125.execute(&state);
+        let state = 0x8125.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0xFF);
         assert_eq!(state.v[0xF], 0x0);
     }
@@ -478,7 +479,7 @@ mod test_execute {
     fn test_8xy6_shr_lsb() {
         let mut state = State::new();
         state.v[0x1] = 0x5;
-        let state = 0x8106.execute(&state);
+        let state = 0x8106.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x2);
         assert_eq!(state.v[0xF], 0x1);
     }
@@ -487,7 +488,7 @@ mod test_execute {
     fn test_8xy6_shr_nolsb() {
         let mut state = State::new();
         state.v[0x1] = 0x4;
-        let state = 0x8106.execute(&state);
+        let state = 0x8106.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x2);
         assert_eq!(state.v[0xF], 0x0);
     }
@@ -497,7 +498,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x11;
         state.v[0x2] = 0x33;
-        let state = 0x8127.execute(&state);
+        let state = 0x8127.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x22);
         assert_eq!(state.v[0xF], 0x1);
     }
@@ -507,7 +508,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x12;
         state.v[0x2] = 0x11;
-        let state = 0x8127.execute(&state);
+        let state = 0x8127.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0xFF);
         assert_eq!(state.v[0xF], 0x0);
     }
@@ -516,7 +517,7 @@ mod test_execute {
     fn test_8xye_shl_msb() {
         let mut state = State::new();
         state.v[0x1] = 0xFF;
-        let state = 0x810E.execute(&state);
+        let state = 0x810E.execute(&state, [0; 16]);
         // 0xFF * 2 = 0x01FE
         assert_eq!(state.v[0x1], 0xFE);
         assert_eq!(state.v[0xF], 0x1);
@@ -526,7 +527,7 @@ mod test_execute {
     fn test_8xye_shl_nomsb() {
         let mut state = State::new();
         state.v[0x1] = 0x4;
-        let state = 0x810E.execute(&state);
+        let state = 0x810E.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0x8);
         assert_eq!(state.v[0xF], 0x0);
     }
@@ -535,7 +536,7 @@ mod test_execute {
     fn test_9xy0_sne_skips() {
         let mut state = State::new();
         state.v[0x1] = 0x11;
-        let state = 0x9120.execute(&state);
+        let state = 0x9120.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0204);
     }
 
@@ -544,14 +545,14 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x1] = 0x11;
         state.v[0x2] = 0x11;
-        let state = 0x9120.execute(&state);
+        let state = 0x9120.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0202);
     }
 
     #[test]
     fn test_annn_ld() {
         let state = State::new();
-        let state = 0xAABC.execute(&state);
+        let state = 0xAABC.execute(&state, [0; 16]);
         assert_eq!(state.i, 0xABC);
     }
 
@@ -559,7 +560,7 @@ mod test_execute {
     fn test_bnnn_jp() {
         let mut state = State::new();
         state.v[0x0] = 0x2;
-        let state = 0xBABC.execute(&state);
+        let state = 0xBABC.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0xABE);
     }
 
@@ -570,7 +571,7 @@ mod test_execute {
         let mut state = State::new();
         state.v[0x0] = 0x1;
         // Draw the 0x0 sprite with a 1x 1y offset
-        let state = 0xD005.execute(&state);
+        let state = 0xD005.execute(&state, [0; 16]);
         let mut expected = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
         expected[1][1..5].copy_from_slice(&[1, 1, 1, 1]);
         expected[2][1..5].copy_from_slice(&[1, 0, 0, 1]);
@@ -588,7 +589,7 @@ mod test_execute {
     fn test_dxyn_drw_collides() {
         let mut state = State::new();
         state.frame_buffer[0][0] = 1;
-        let state = 0xD001.execute(&state);
+        let state = 0xD001.execute(&state, [0; 16]);
         assert_eq!(state.v[0xF], 0x1)
     }
 
@@ -598,39 +599,41 @@ mod test_execute {
         // 0 1 0 1 -> Set
         state.frame_buffer[0][2..6].copy_from_slice(&[0, 1, 0, 1]);
         // 1 1 0 0 -> Draw xor
-        let state = 0xD005.execute(&state);
+        let state = 0xD005.execute(&state, [0; 16]);
         assert_eq!(state.frame_buffer[0][2..6], [1, 0, 0, 1])
     }
 
     #[test]
     fn test_ex9e_skp_skips() {
         let mut state = State::new();
-        state.pressed_keys[0xE] = 0x1;
+        let mut pressed_keys = [0; 16];
+        pressed_keys[0xE] = 0x1;
         state.v[0x1] = 0xE;
-        let state = 0xE19E.execute(&state);
+        let state = 0xE19E.execute(&state, pressed_keys);
         assert_eq!(state.pc, 0x0204);
     }
 
     #[test]
     fn test_ex9e_skp_doesntskip() {
         let state = State::new();
-        let state = 0xE19E.execute(&state);
+        let state = 0xE19E.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0202);
     }
 
     #[test]
     fn test_exa1_sknp_skips() {
         let state = State::new();
-        let state = 0xE1A1.execute(&state);
+        let state = 0xE1A1.execute(&state, [0; 16]);
         assert_eq!(state.pc, 0x0204);
     }
 
     #[test]
     fn test_exa1_sknp_doesntskip() {
         let mut state = State::new();
-        state.pressed_keys[0xE] = 0x1;
+        let mut pressed_keys = [0; 16];
+        pressed_keys[0xE] = 0x1;
         state.v[0x1] = 0xE;
-        let state = 0xE1A1.execute(&state);
+        let state = 0xE1A1.execute(&state, pressed_keys);
         assert_eq!(state.pc, 0x0202);
     }
 
@@ -638,14 +641,14 @@ mod test_execute {
     fn test_fx07_ld() {
         let mut state = State::new();
         state.delay_timer = 0xF;
-        let state = 0xF107.execute(&state);
+        let state = 0xF107.execute(&state, [0; 16]);
         assert_eq!(state.v[0x1], 0xF);
     }
 
     #[test]
     fn test_fx0a_ld_setsregisterneedingkey() {
         let state = State::new();
-        let state = 0xF10A.execute(&state);
+        let state = 0xF10A.execute(&state, [0; 16]);
         assert_eq!(state.register_needing_key, Some(0x1));
     }
 
@@ -653,7 +656,7 @@ mod test_execute {
     fn test_fx15_ld() {
         let mut state = State::new();
         state.v[0x1] = 0xF;
-        let state = 0xf115.execute(&state);
+        let state = 0xf115.execute(&state, [0; 16]);
         assert_eq!(state.delay_timer, 0xF);
     }
 
@@ -661,7 +664,7 @@ mod test_execute {
     fn test_fx18_ld() {
         let mut state = State::new();
         state.v[0x1] = 0xF;
-        let state = 0xf118.execute(&state);
+        let state = 0xf118.execute(&state, [0; 16]);
         assert_eq!(state.sound_timer, 0xF);
     }
 
@@ -670,7 +673,7 @@ mod test_execute {
         let mut state = State::new();
         state.i = 0x1;
         state.v[0x1] = 0x1;
-        let state = 0xF11E.execute(&state);
+        let state = 0xF11E.execute(&state, [0; 16]);
         assert_eq!(state.i, 0x2);
     }
 
@@ -678,7 +681,7 @@ mod test_execute {
     fn test_fx29_ld() {
         let mut state = State::new();
         state.v[0x1] = 0x2;
-        let state = 0xF129.execute(&state);
+        let state = 0xF129.execute(&state, [0; 16]);
         assert_eq!(state.i, 0xA);
     }
 
@@ -688,7 +691,7 @@ mod test_execute {
         // 0x7B -> 123
         state.v[0x1] = 0x7B;
         state.i = 0x200;
-        let state = 0xF133.execute(&state);
+        let state = 0xF133.execute(&state, [0; 16]);
         assert_eq!(state.memory[0x200..0x203], [0x1, 0x2, 0x3]);
     }
 
@@ -697,7 +700,7 @@ mod test_execute {
         let mut state = State::new();
         state.i = 0x200;
         state.v[0x0..0x5].copy_from_slice(&[0x1, 0x2, 0x3, 0x4, 0x5]);
-        let state = 0xF455.execute(&state);
+        let state = 0xF455.execute(&state, [0; 16]);
         assert_eq!(state.memory[0x200..0x205], [0x1, 0x2, 0x3, 0x4, 0x5]);
     }
 
@@ -706,7 +709,7 @@ mod test_execute {
         let mut state = State::new();
         state.i = 0x200;
         state.memory[0x200..0x205].copy_from_slice(&[0x1, 0x2, 0x3, 0x4, 0x5]);
-        let state = 0xF465.execute(&state);
+        let state = 0xF465.execute(&state, [0; 16]);
         assert_eq!(state.v[0x0..0x5], [0x1, 0x2, 0x3, 0x4, 0x5]);
     }
 }
