@@ -38,7 +38,7 @@ impl Chip8 {
     /// Load a rom from a source file
     ///
     /// # Arguments
-    /// * `file` a file reader that contains a ROM
+    /// * `reader` a file reader that contains a ROM
     pub fn load_rom(&mut self, reader: &mut std::io::Read) -> Result<(), Error> {
         reader.read_exact(&mut self.state.memory[0x200..])
     }
@@ -103,7 +103,7 @@ impl Chip8 {
 
     /// Handles delay counter and timers
     /// - decrements the delay counter
-    /// - decrements timers when the counter hits 0
+    /// - decrements timers when the counter hits 0 and resets the counter to `CPU_TIMERS_PER_CYCLE`
     pub fn advance_timers(&mut self) {
         if self.state.delay_counter == 0 {
             self.state.delay_counter = CPU_CYCLES_PER_TIMER_CYCLE;

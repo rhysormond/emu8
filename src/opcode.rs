@@ -27,7 +27,18 @@ where
     /// Returns the Opcode's least significant byte.
     fn byte(&self) -> u8;
 
-    /// Executes an opcode for a given state and set of pressed keys and returns a new state
+    /// Execute a single opcode by matching it against the opcode table and updating the game state.
+    /// - matches the opcode's nibbles against an opcode table
+    /// - executes the instruction encoded in the opcode
+    /// - returns an updated copy of the Chip-8 internal state
+    ///
+    /// NOTE: while some opcodes interact with the set of pressed keys, a lot of the keypress
+    ///       interaction happens when the key itself is pressed (see `Chip8.key_press`)
+    ///
+    /// # Arguments
+    /// * `op` a 16-bit opcode
+    /// * `state` a reference to the Chip-8's internal state
+    /// * `pressed_keys` the currently pressed keys
     fn execute(&self, state: &State, pressed_keys: [u8; 16]) -> State;
 }
 
@@ -49,14 +60,6 @@ impl Opcode for u16 {
         (self & 0x00FF) as u8
     }
 
-    /// Execute a single opcode by matching it against the opcode table and updating the game state.
-    /// - matches the opcode's nibbles against an opcode table
-    /// - executes the instruction encoded in the opcode
-    /// - returns an updated copy of the Chip-8 internal state
-    ///
-    /// # Arguments
-    /// * `op` a 16-bit opcode
-    /// * `state` a reference to the Chip-8's internal state
     fn execute(&self, state: &State, pressed_keys: [u8; 16]) -> State {
         let mut state: State = State::clone(state);
         // TODO use a logger instead of print statements
