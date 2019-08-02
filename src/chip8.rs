@@ -86,7 +86,10 @@ impl Chip8 {
     /// Reverses the CPU by a single cycle if possible
     /// - if there are previous_states, pops the last one and restores it
     pub fn reverse_cpu(&mut self) {
-        self.load_state();
+        let maybe_old_state: Option<State> = self.previous_states.pop_front();
+        if let Some(state) = maybe_old_state {
+            self.state = state
+        }
     }
 
     /// Puts the current state in previous_states
@@ -96,15 +99,6 @@ impl Chip8 {
             self.previous_states.pop_back();
         }
         self.previous_states.push_front(self.state);
-    }
-
-    /// Puts the current state in previous_states
-    /// - if there are already MAX_SAVED_STATES saved then the oldest is dropped
-    fn load_state(&mut self) {
-        let maybe_old_state: Option<State> = self.previous_states.pop_front();
-        if let Some(state) = maybe_old_state {
-            self.state = state
-        }
     }
 
     /// Handles delay counter and timers
