@@ -1,6 +1,9 @@
 use sdl2::pixels::PixelFormatEnum;
 
-use state::FrameBuffer;
+use crate::constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use crate::state::FrameBuffer;
+
+const SCALE: usize = 10;
 
 /// # Display
 /// The Chip-8 display is composed of 64x32 pixels black/white pixels.
@@ -21,10 +24,14 @@ impl Display {
     /// * `width` the horizontal size of the display measured in pixels
     /// * `height` the vertical size of the display measured in pixels
     /// * `scale` the size multiplier for each pixel
-    pub fn new(sdl: &sdl2::Sdl, width: usize, height: usize, scale: usize) -> Self {
+    pub fn new(sdl: &sdl2::Sdl) -> Self {
         let video_subsystem = sdl.video().unwrap();
         let window = video_subsystem
-            .window("Emu-8", (width * scale) as u32, (height * scale) as u32)
+            .window(
+                "Emu-8",
+                (DISPLAY_WIDTH * SCALE) as u32,
+                (DISPLAY_HEIGHT * SCALE) as u32,
+            )
             .position_centered()
             .opengl()
             .build()
@@ -33,8 +40,8 @@ impl Display {
 
         Display {
             canvas,
-            width,
-            height,
+            width: DISPLAY_WIDTH,
+            height: DISPLAY_HEIGHT,
         }
     }
 

@@ -1,4 +1,4 @@
-extern crate rand;
+extern crate emu8;
 extern crate sdl2;
 
 use std::fs::File;
@@ -8,25 +8,14 @@ use std::time::{Duration, Instant};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
-mod chip8;
-mod constants;
-mod display;
-mod instruction;
-mod keymap;
-mod opcode;
-mod state;
+use emu8::*;
 
 fn main() {
-    let mut chip8: chip8::Chip8 = chip8::Chip8::new();
+    let mut chip8: Chip8 = Chip8::new();
 
     // Get SDL2 context
     let sdl: sdl2::Sdl = sdl2::init().unwrap();
-    let mut display: display::Display = display::Display::new(
-        &sdl,
-        constants::DISPLAY_WIDTH,
-        constants::DISPLAY_HEIGHT,
-        10,
-    );
+    let mut display: Display = Display::new(&sdl);
     let mut events = sdl.event_pump().unwrap();
 
     // Load ROM
@@ -47,7 +36,7 @@ fn main() {
     }
 
     // Set initial timing
-    let cycle_time: Duration = Duration::new(0, constants::CLOCK_SPEED as u32);
+    let cycle_time: Duration = Duration::new(0, CLOCK_SPEED as u32);
     let mut last_cycle: Instant = Instant::now();
 
     // Whether or not the default clock speed should be respected
@@ -67,7 +56,7 @@ fn main() {
                 Event::Quit { .. } => break 'event,
                 Event::KeyDown {
                     keycode: Some(key), ..
-                } => match (key, keymap::keymap(key)) {
+                } => match (key, keymap(key)) {
                     (_, Some(kc)) => chip8.key_press(kc),
                     (Keycode::Space, _) => fast_forward = true,
                     (Keycode::Escape, _) => rewind = true,
@@ -75,7 +64,7 @@ fn main() {
                 },
                 Event::KeyUp {
                     keycode: Some(key), ..
-                } => match (key, keymap::keymap(key)) {
+                } => match (key, keymap(key)) {
                     (_, Some(kc)) => chip8.key_release(kc),
                     (Keycode::Space, _) => fast_forward = false,
                     (Keycode::Escape, _) => rewind = false,

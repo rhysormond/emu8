@@ -1,4 +1,4 @@
-use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH, SPRITE_SHEET};
+use crate::constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH, SPRITE_SHEET};
 
 /// # State
 /// A snapshot of the Chip8 internal state

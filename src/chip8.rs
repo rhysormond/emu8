@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 use std::io::Error;
 
-use constants::{CPU_CYCLES_PER_TIMER_CYCLE, MAX_SAVED_STATES};
-use opcode::Opcode;
-use state::{FrameBuffer, State};
+use crate::constants::{CPU_CYCLES_PER_TIMER_CYCLE, MAX_SAVED_STATES};
+use crate::opcode::Opcode;
+use crate::state::{FrameBuffer, State};
 
 /// # Chip-8
 /// Chip-8 is a virtual machine and corresponding interpreted language.
@@ -79,8 +79,8 @@ impl Chip8 {
         if self.state.register_needing_key == None {
             let op: u16 = self.get_op();
             println!(
-                "{:04X} v{:02X?} i{:04X} pc{:04X} sp{:02X}",
-                op, self.state.v, self.state.i, self.state.pc, self.state.sp
+                "{:04X} v{:02X?} i{:04X} pc{:04X}",
+                op, self.state.v, self.state.i, self.state.pc
             );
             let instruction = op.to_instruction();
             self.state = instruction.execute(&self.state, self.pressed_keys);
@@ -132,6 +132,12 @@ impl Chip8 {
         let left = u16::from(self.state.memory[self.state.pc as usize]);
         let right = u16::from(self.state.memory[self.state.pc as usize + 1]);
         left << 8 | right
+    }
+}
+
+impl Default for Chip8 {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -1,5 +1,5 @@
-use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
-use state::State;
+use crate::constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use crate::state::State;
 
 /// Chip8 instructions that know how to execute themselves
 pub trait Instruction {

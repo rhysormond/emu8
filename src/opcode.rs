@@ -1,4 +1,4 @@
-use instruction::*;
+use crate::instruction::*;
 
 /// # Opcodes
 ///
@@ -117,8 +117,8 @@ mod test_opcode {
 #[cfg(test)]
 mod test_instruction {
     use super::*;
-    use constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
-    use state::State;
+    use crate::constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
+    use crate::state::State;
 
     #[test]
     fn test_00e0_cls() {
