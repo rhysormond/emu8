@@ -11,6 +11,7 @@ use sdl2::keyboard::Keycode;
 mod chip8;
 mod constants;
 mod display;
+mod instruction;
 mod keymap;
 mod opcode;
 mod state;

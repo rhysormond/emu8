@@ -39,7 +39,7 @@ impl Chip8 {
     ///
     /// # Arguments
     /// * `reader` a file reader that contains a ROM
-    pub fn load_rom(&mut self, reader: &mut std::io::Read) -> Result<(), Error> {
+    pub fn load_rom(&mut self, reader: &mut dyn std::io::Read) -> Result<(), Error> {
         reader.read_exact(&mut self.state.memory[0x200..])
     }
 
@@ -78,7 +78,12 @@ impl Chip8 {
     pub fn advance_cpu(&mut self) {
         if self.state.register_needing_key == None {
             let op: u16 = self.get_op();
-            self.state = op.execute(&self.state, self.pressed_keys);
+            println!(
+                "{:04X} v{:02X?} i{:04X} pc{:04X} sp{:02X}",
+                op, self.state.v, self.state.i, self.state.pc, self.state.sp
+            );
+            let instruction = op.to_instruction();
+            self.state = instruction.execute(&self.state, self.pressed_keys);
         };
         self.save_state();
     }
@@ -186,16 +191,5 @@ mod tests {
         assert_eq!(MAX_SAVED_STATES, chip8.previous_states.len());
         chip8.save_state();
         assert_eq!(MAX_SAVED_STATES, chip8.previous_states.len());
-    }
-
-    #[test]
-    fn test_chip8_loads_states() {
-        let mut chip8 = Chip8::new();
-        let saved_state = chip8.state;
-        chip8.previous_states.push_front(saved_state);
-        chip8.state.delay_counter += 1;
-        assert_eq!(chip8.state.delay_counter, 1);
-        chip8.load_state();
-        assert_eq!(chip8.state.delay_counter, 0);
     }
 }
