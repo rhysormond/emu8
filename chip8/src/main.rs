@@ -1,6 +1,3 @@
-extern crate emu8;
-extern crate sdl2;
-
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Duration, Instant};
