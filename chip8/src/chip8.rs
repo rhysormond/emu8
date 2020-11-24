@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::io::Error;
 
 use core::constants::{CPU_CYCLES_PER_TIMER_CYCLE, MAX_SAVED_STATES};
-use core::opcode::Opcode;
+use core::instruction::Instruction;
 use core::state::{FrameBuffer, State};
 
 /// # Chip-8
@@ -82,8 +82,8 @@ impl Chip8 {
                 "{:04X} v{:02X?} i{:04X} pc{:04X}",
                 op, self.state.v, self.state.i, self.state.pc
             );
-            let instruction = op.to_instruction();
-            self.state = instruction.execute(&self.state, self.pressed_keys);
+            let instruction = Instruction::from_op(&op);
+            self.state = instruction.execute(&op, &self.state, self.pressed_keys);
         };
         self.save_state();
     }

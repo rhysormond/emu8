@@ -1,4 +1,4 @@
-use chip8::run::run;
+use chip8::run;
 use clap::{Clap, ValueHint};
 use std::path::PathBuf;
 
