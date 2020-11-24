@@ -11,10 +11,18 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "chip8"
+name = "core"
 version = "0.1.0"
 dependencies = [
- "emu8 0.1.0",
+ "rand 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2 0.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "display"
+version = "0.1.0"
+dependencies = [
+ "core 0.1.0",
  "sdl2 0.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -22,7 +30,8 @@ dependencies = [
 name = "emu8"
 version = "0.1.0"
 dependencies = [
- "rand 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core 0.1.0",
+ "display 0.1.0",
  "sdl2 0.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

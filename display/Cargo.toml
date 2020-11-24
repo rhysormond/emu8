@@ -1,9 +1,10 @@
 [package]
-name = "chip8"
+name = "display"
 version = "0.1.0"
 authors = ["rhys <rhysormond@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-emu8 = { version = "0.1.0", path = "../" }
+core = { version = "0.1.0", path = "../core" }
 sdl2 = "0"
+

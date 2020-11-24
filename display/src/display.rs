@@ -1,7 +1,7 @@
 use sdl2::pixels::PixelFormatEnum;
 
-use crate::constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
-use crate::state::FrameBuffer;
+use core::constants::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use core::state::FrameBuffer;
 
 const SCALE: usize = 10;
 

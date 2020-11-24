@@ -5,11 +5,10 @@ authors = ["rhys <rhysormond@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-rand = "0"
+core = { version = "0.1.0", path = "core" }
+display = { version = "0.1.0", path = "display" }
 sdl2 = "0"
 
 [workspace]
-# The executable that uses this library is a member of this workspace so that it
-# can have dependencies emu8 shouldn't have
-members = ["chip8"]
-default-members = ["chip8"]
+members = ["core", "display"]
+

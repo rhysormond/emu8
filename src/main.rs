@@ -5,7 +5,8 @@ use std::time::{Duration, Instant};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
-use emu8::*;
+use core::{keymap, Chip8, CLOCK_SPEED};
+use display::Display;
 
 fn main() {
     let mut chip8: Chip8 = Chip8::new();
