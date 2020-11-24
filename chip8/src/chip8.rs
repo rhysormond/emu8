@@ -78,12 +78,7 @@ impl Chip8 {
     pub fn advance_cpu(&mut self) {
         if self.state.register_needing_key == None {
             let op: u16 = self.get_op();
-            println!(
-                "{:04X} v{:02X?} i{:04X} pc{:04X}",
-                op, self.state.v, self.state.i, self.state.pc
-            );
-            let instruction = Instruction::from_op(&op);
-            self.state = instruction.execute(&op, &self.state, self.pressed_keys);
+            self.state = Instruction::from_op(&op).execute(&op, &self.state, self.pressed_keys);
         };
         self.save_state();
     }
