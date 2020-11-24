@@ -4,7 +4,6 @@ use crate::state::State;
 
 use self::Instruction::*;
 
-/// Chip8 instructions that know how to execute themselves
 pub enum Instruction {
     Clr,
     Rts,
@@ -43,6 +42,7 @@ pub enum Instruction {
 }
 
 impl Instruction {
+    /// Selects the correct Instruction for a given Opcode
     pub fn from_op(op: &dyn Opcode) -> Instruction {
         match op.nibbles() {
             (0x0, 0x0, 0xE, 0x0) => Clr,

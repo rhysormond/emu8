@@ -47,6 +47,12 @@ pub struct State {
     pub register_needing_key: Option<u8>,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl State {
     pub fn new() -> Self {
         // 0x000 - 0x080 is reserved for a sprite sheet
