@@ -5,10 +5,9 @@ authors = ["rhys <rhysormond@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-core = { version = "0.1.0", path = "core" }
-display = { version = "0.1.0", path = "display" }
-sdl2 = "0"
+chip8 = { version = "0.1.0", path = "chip8" }
+clap = "3.0.0-beta.2"
 
 [workspace]
-members = ["core", "display"]
+members = ["chip8", "core", "display"]
 

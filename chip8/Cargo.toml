@@ -1,0 +1,11 @@
+[package]
+name = "chip8"
+version = "0.1.0"
+authors = ["rhys <rhysormond@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+core = { version = "0.1.0", path = "../core" }
+display = { version = "0.1.0", path = "../display" }
+sdl2 = "0"
+
