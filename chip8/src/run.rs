@@ -6,7 +6,9 @@ use std::time::{Duration, Instant};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
-use core::{keymap, Chip8, CLOCK_SPEED};
+use crate::chip8::Chip8;
+use crate::keymap::keymap;
+use core::constants::CLOCK_SPEED;
 use display::Display;
 
 pub fn run(rom: PathBuf) {

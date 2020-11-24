@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 use std::io::Error;
 
-use crate::constants::{CPU_CYCLES_PER_TIMER_CYCLE, MAX_SAVED_STATES};
-use crate::opcode::Opcode;
-use crate::state::{FrameBuffer, State};
+use core::constants::{CPU_CYCLES_PER_TIMER_CYCLE, MAX_SAVED_STATES};
+use core::opcode::Opcode;
+use core::state::{FrameBuffer, State};
 
 /// # Chip-8
 /// Chip-8 is a virtual machine and corresponding interpreted language.

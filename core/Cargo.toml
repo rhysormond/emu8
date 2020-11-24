@@ -6,5 +6,4 @@ edition = "2018"
 
 [dependencies]
 rand = "0"
-sdl2 = "0"
 
