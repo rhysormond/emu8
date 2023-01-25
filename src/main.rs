@@ -1,28 +1,26 @@
 use chip8::run;
-use clap::{Clap, ValueHint};
+use clap::{Parser, ValueHint};
 use std::path::PathBuf;
 
-#[derive(Clap)]
-struct Opts {
+#[derive(Parser)]
+struct Args {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     Run(Run),
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct Run {
     #[clap(short, long, value_hint = ValueHint::AnyPath)]
     file: PathBuf,
 }
 
 fn main() {
-    let opts: Opts = Opts::parse();
-
-    match opts.subcmd {
+    match Args::parse().subcmd {
         SubCommand::Run(args) => run(args.file),
     };
 }

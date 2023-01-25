@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 chip8 = { version = "0.1.0", path = "chip8" }
-clap = "3.0.0-beta.2"
+clap = { version = "4", features = ["derive"] }
 
 [workspace]
 members = ["chip8", "core", "display"]

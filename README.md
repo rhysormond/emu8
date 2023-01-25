@@ -18,7 +18,7 @@ See [the chip8 struct's docstring](src/chip8.rs) for more system details.
 
 # Running
 ```bash
-cargo run ~/path/to/file.ch8
+cargo run -- run --file ~/path/to/file.ch8
 ```
 
 The Chip-8 supports ROMS up to 3584 bytes in length (4K memory - 512 bytes for internal use).
